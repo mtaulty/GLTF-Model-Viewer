@@ -1,0 +1,33 @@
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+
+internal static class FileDialogHelper
+{
+    internal static async Task<Stream> PickGLTFFileAsync()
+    {
+#if ENABLE_WINMD_SUPPORT
+        Stream stream = null;
+
+        FileOpenPicker picker = new FileOpenPicker();
+        picker.SuggestedStartLocation = PickerLocationId.Objects3D;
+        picker.FileTypeFilter.Add(".glb");
+        picker.FileTypeFilter.Add(".gltf");
+        picker.FileTypeFilter.Add("*");
+        picker.ViewMode = PickerViewMode.Thumbnail;
+        picker.CommitButtonText = "Select Model";
+
+        var file = await picker.PickSingleFileAsync();
+
+        if (file != null)
+        {
+            var fileStream = await file.OpenReadAsync();
+            stream = fileStream.AsStreamForRead();
+        }
+        return(stream);
+#else             
+        throw new InvalidOperationException(
+            "Sorry, no file dialog support for other platforms here");
+#endif
+    }
+}
