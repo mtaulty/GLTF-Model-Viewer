@@ -9,4 +9,8 @@ A command something like;
 
 	mklink /j .\GLTFModelViewer\Assets\HoloToolkit .\MixedRealityToolkit-Unity\Assets\HoloToolkit
 
-then open in Unity and build.
+which is encapsulated in the script;
+
+	setup.bat
+
+so you can just run that to set it up.
