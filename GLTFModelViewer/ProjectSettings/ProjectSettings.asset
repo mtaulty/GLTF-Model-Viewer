@@ -565,7 +565,7 @@ PlayerSettings:
   m_MobileRenderingPath: 1
   metroPackageName: GLTFModelViewer
   metroPackageVersion: 
-  metroCertificatePath: C:\Data\temp\GLTF-Model-Viewer\GLTFModelViewer\Assets\WSATestCertificate.pfx
+  metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
   metroCertificateIssuer: DefaultCompany
@@ -587,11 +587,11 @@ PlayerSettings:
   platformCapabilities:
     WindowsStoreApps:
       HumanInterfaceDevice: False
-      InternetClient: True
+      InternetClient: False
       InternetClientServer: False
       Microphone: True
       PrivateNetworkClientServer: False
-      SpatialPerception: False
+      SpatialPerception: True
       WebCam: False
   metroFTAName: 
   metroFTAFileTypes: []
