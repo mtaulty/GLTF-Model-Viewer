@@ -1,6 +1,5 @@
 ﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
 using HoloToolkit.Unity.UX;
-using HoloToolkit.UX.Dialog;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityGLTF;
@@ -9,9 +8,6 @@ public class ModelController : AwaitableMonoBehaviour
 {
     [SerializeField]
     private GameObject GLTFModelParent;
-
-    [SerializeField]
-    private Dialog dialogPrefab;
 
     [SerializeField]
     private BoundingBox boundingBoxPrefab;
@@ -37,6 +33,9 @@ public class ModelController : AwaitableMonoBehaviour
     {
         if (this.CurrentModel != null)
         {
+            var audioController = this.gameObject.GetComponent<AudioController>();
+            audioController?.PlayClip(AudioClipType.Resetting);
+
             this.CurrentModel.transform.localPosition = Vector3.zero;
             this.CurrentModel.transform.localRotation = Quaternion.identity;
             this.CurrentModel.transform.localScale = Vector3.one;
@@ -70,11 +69,8 @@ public class ModelController : AwaitableMonoBehaviour
             }
             else
             {
-                // TODO: not sure this actually works yet.
-                Dialog.Open(this.dialogPrefab.gameObject,
-                    DialogButtonType.OK,
-                    "Error loading model",
-                    "This model did not load correctly, possibly due to GLTF incompatibility");
+                var audioController = this.gameObject.GetComponent<AudioController>();
+                audioController?.PlayClip(AudioClipType.LoadError);
             }
         }
     }
