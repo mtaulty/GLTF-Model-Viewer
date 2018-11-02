@@ -9,21 +9,11 @@ using UnityEngine;
 /// </summary>
 internal static class AwaitableCoRoutine
 {
-    class CoRoutineHelper : MonoBehaviour
-    {
-        internal IEnumerator RunCoRoutineWithCompletionCallback(IEnumerator coroutine, Action callback)
-        {
-            yield return StartCoroutine(coroutine);
-            callback();
-        }
-    }
-
-    internal static async Task RunCoroutineAsync(IEnumerator coRoutine)
-    {
-        var helper = new CoRoutineHelper();
+    internal static async Task RunCoroutineAsync(IRunCoRoutine routineRunner, IEnumerator coRoutine)
+    { 
         var completionSource = new TaskCompletionSource<bool>();
 
-        helper.RunCoRoutineWithCompletionCallback(coRoutine,
+        routineRunner.RunCoRoutineWithCallback(coRoutine,
             () =>
             {
                 completionSource.SetResult(true);
