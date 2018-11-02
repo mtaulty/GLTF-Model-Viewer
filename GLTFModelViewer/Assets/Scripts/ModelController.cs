@@ -1,11 +1,11 @@
-﻿using HoloToolkit.UX.Dialog;
-using System;
-using System.Collections;
+﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
+using HoloToolkit.Unity.UX;
+using HoloToolkit.UX.Dialog;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityGLTF;
 
-public class ModelController : MonoBehaviour, IRunCoRoutine
+public class ModelController : AwaitableMonoBehaviour
 {
     [SerializeField]
     private GameObject GLTFModelParent;
@@ -13,8 +13,41 @@ public class ModelController : MonoBehaviour, IRunCoRoutine
     [SerializeField]
     private Dialog dialogPrefab;
 
+    [SerializeField]
+    private BoundingBox boundingBoxPrefab;
+
+    bool Opening { get; set; }
+
+    public async void OnOpenSpeechCommand()
+    {
+        if (!this.Opening)
+        {
+            try
+            {
+                this.Opening = true;
+                await this.OpenNewModelAsync();
+            }
+            finally
+            {
+                this.Opening = false;
+            }
+        }
+    }
+    public void OnResetSpeechCommand()
+    {
+        if (this.CurrentModel != null)
+        {
+            this.CurrentModel.transform.localPosition = Vector3.zero;
+            this.CurrentModel.transform.localRotation = Quaternion.identity;
+            this.CurrentModel.transform.localScale = Vector3.one;
+        }
+    }
     public async Task OpenNewModelAsync()
     {
+        // Get rid of the previous model regardless of whether the user chooses
+        // a new one or not with a review to avoiding cluttering the screen.
+        this.DisposeExistingGLTFModel();
+
         // Note - this method will throw inside of the editor, only does something
         // on the UWP platform.
         var stream = await FileDialogHelper.PickGLTFFileAsync();
@@ -27,19 +60,17 @@ public class ModelController : MonoBehaviour, IRunCoRoutine
             GLTFSceneImporter importer = new GLTFSceneImporter(
                 "/", stream, null, true);
 
-            await AwaitableCoRoutine.RunCoroutineAsync(this, importer.Load(-1, true));
+            await base.RunCoroutineAsync(importer.Load(-1, true));
 
             // Did we load?
             if (importer.LastLoadedScene != null)
             {
-                // Get rid of the previous model.
-                this.DisposeExistingGLTFModel();
-
                 // Replace it with the new model
                 this.AddNewGLTFModel(importer.LastLoadedScene);
             }
             else
             {
+                // TODO: not sure this actually works yet.
                 Dialog.Open(this.dialogPrefab.gameObject,
                     DialogButtonType.OK,
                     "Error loading model",
@@ -48,27 +79,48 @@ public class ModelController : MonoBehaviour, IRunCoRoutine
         }
     }
 
-    public void RunCoRoutineWithCallback(IEnumerator coRoutine, Action callback)
-    {
-        this.StartCoroutine(RunCoRoutine(coRoutine, callback));
-    }
-    IEnumerator RunCoRoutine(IEnumerator coRoutine, Action callback)
-    {
-        yield return base.StartCoroutine(coRoutine);
-        callback();
-    }
-
     void AddNewGLTFModel(GameObject lastLoadedScene)
     {
+        // Move the parent to be approx 3m down the user's gaze.
+        var parentPosition =
+            Camera.main.transform.position +
+            Camera.main.transform.forward * MODEL_START_DISTANCE;
+
+        // Patch up the y-value to try and line it up with the head position.
+        parentPosition.y = Camera.main.transform.position.y;
+
+        this.GLTFModelParent.transform.position = parentPosition;
+
         // Parent the new model off our parent object.
         lastLoadedScene.transform.SetParent(this.GLTFModelParent.transform, false);
 
         // Need to do something about setting the model to a reasonable size.
 
         // Now need to add behaviours for rotate, transform, scale, etc.
+        var twoHandManips = lastLoadedScene.gameObject.AddComponent<TwoHandManipulatable>();
+        twoHandManips.BoundingBoxPrefab = this.boundingBoxPrefab;
+        twoHandManips.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
+        twoHandManips.RotationConstraint = AxisConstraint.None;
+    }
+    GameObject CurrentModel
+    {
+        get
+        {
+            GameObject currentModel = null;
+            if (this.GLTFModelParent.transform.childCount > 0)
+            {
+                currentModel = this.GLTFModelParent.transform.GetChild(0).gameObject;
+            }
+            return (currentModel);
+        }
     }
     void DisposeExistingGLTFModel()
     {
-
+        if (this.CurrentModel != null)
+        {       
+            Destroy(this.CurrentModel.GetComponent<TwoHandManipulatable>());
+            Destroy(this.CurrentModel);
+        }
     }
+    static readonly float MODEL_START_DISTANCE = 3.0f;
 }
