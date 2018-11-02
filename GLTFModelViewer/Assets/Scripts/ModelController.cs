@@ -14,6 +14,8 @@ public class ModelController : AwaitableMonoBehaviour
 
     bool Opening { get; set; }
 
+    Vector3? initialScaleFactor;
+
     public async void OnOpenSpeechCommand()
     {
         if (!this.Opening)
@@ -38,7 +40,7 @@ public class ModelController : AwaitableMonoBehaviour
 
             this.CurrentModel.transform.localPosition = Vector3.zero;
             this.CurrentModel.transform.localRotation = Quaternion.identity;
-            this.CurrentModel.transform.localScale = Vector3.one;
+            this.CurrentModel.transform.localScale = (Vector3)this.initialScaleFactor;
         }
     }
     public async Task OpenNewModelAsync()
@@ -75,7 +77,7 @@ public class ModelController : AwaitableMonoBehaviour
         }
     }
 
-    void AddNewGLTFModel(GameObject lastLoadedScene)
+    void AddNewGLTFModel(GameObject loadedModel)
     {
         // Move the parent to be approx 3m down the user's gaze.
         var parentPosition =
@@ -88,15 +90,33 @@ public class ModelController : AwaitableMonoBehaviour
         this.GLTFModelParent.transform.position = parentPosition;
 
         // Parent the new model off our parent object.
-        lastLoadedScene.transform.SetParent(this.GLTFModelParent.transform, false);
-
-        // Need to do something about setting the model to a reasonable size.
+        loadedModel.transform.SetParent(this.GLTFModelParent.transform, false);
 
         // Now need to add behaviours for rotate, transform, scale, etc.
-        var twoHandManips = lastLoadedScene.gameObject.AddComponent<TwoHandManipulatable>();
+        var twoHandManips = loadedModel.gameObject.AddComponent<TwoHandManipulatable>();
         twoHandManips.BoundingBoxPrefab = this.boundingBoxPrefab;
         twoHandManips.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
         twoHandManips.RotationConstraint = AxisConstraint.None;
+
+        // Need to do something about setting the model to a reasonable size.
+        var collider = loadedModel.gameObject.GetComponentInChildren<Collider>();
+
+        if (collider != null)
+        {
+            // TODO: does querying bounds like this work at this point?
+            var bounds = collider.bounds;
+
+            // what's the max bound here?
+            var maxBound = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
+
+            // what the scale factor we need then?
+            var scaleFactor = MODEL_START_SIZE / maxBound;
+
+            // scale it.
+            loadedModel.gameObject.transform.localScale *= scaleFactor;
+
+            this.initialScaleFactor = loadedModel.gameObject.transform.localScale;
+        }
     }
     GameObject CurrentModel
     {
@@ -116,7 +136,9 @@ public class ModelController : AwaitableMonoBehaviour
         {       
             Destroy(this.CurrentModel.GetComponent<TwoHandManipulatable>());
             Destroy(this.CurrentModel);
+            this.initialScaleFactor = null;
         }
     }
+    static readonly float MODEL_START_SIZE = 0.5f;
     static readonly float MODEL_START_DISTANCE = 3.0f;
 }
