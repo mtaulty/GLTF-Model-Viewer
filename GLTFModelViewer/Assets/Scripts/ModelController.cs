@@ -1,8 +1,11 @@
 ﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
 using HoloToolkit.Unity.UX;
 using HoloToolkit.UX.Progress;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.XR.WSA;
 using UnityGLTF;
 
 public class ModelController : AwaitableMonoBehaviour
@@ -56,10 +59,16 @@ public class ModelController : AwaitableMonoBehaviour
 
         if (stream != null)
         {
+            // TODO: this progress indicator is broken at the moment. I've 
+            // parented it off the camera for now which I'm not meant to do
+            // but the examples in the toolkit don't work for me either -
+            // the progress opens up in weird places, doesn't tag-a-long
+            // and I'm not sure of the best way to fix it yet without
+            // just making my own progress indicator.
             ProgressIndicator.Instance.Open(
-                IndicatorStyleEnum.AnimatedOrbs, 
-                ProgressStyleEnum.ProgressBar, 
-                ProgressMessageStyleEnum.Visible, 
+                IndicatorStyleEnum.AnimatedOrbs,
+                ProgressStyleEnum.None,
+                ProgressMessageStyleEnum.Visible,
                 "Loading...");
 
             // Try to load that model
@@ -83,42 +92,85 @@ public class ModelController : AwaitableMonoBehaviour
             }
         }
     }
-
     void AddNewGLTFModel(GameObject loadedModel)
     {
+        // Move the parent to be down the gaze vector.
         this.PositionParentForModel();
 
+        // Parent the new model off the parent & position it.
+        this.ParentAndPositionModel(loadedModel);
+
+        // Size the new model so that it displays reasonably.
+        this.InitialSizeModel(loadedModel);
+
+        // Point the model towards the camera.
+        loadedModel.transform.LookAt(Camera.main.transform);
+
+        // Add the behaviours which let the user size, scale, rotate the model.
+        this.AddManipulationsToModel(loadedModel);
+
+        // Add a world anchor (we don't try to be smart with this, we just add one)
+        this.AddWorldAnchorToModel(loadedModel);
+
+    }
+    void AddWorldAnchorToModel(GameObject loadedModel)
+    {
+        var worldAnchor = loadedModel.gameObject.AddComponent<WorldAnchor>();        
+    }
+    void ParentAndPositionModel(GameObject loadedModel)
+    {
         // Parent the new model off our parent object.
         loadedModel.transform.SetParent(this.GLTFModelParent.transform, false);
         loadedModel.transform.localPosition = Vector3.zero;
-
-        this.AddManipulationsToModel(loadedModel);
-
-        this.InitialSizeModel(loadedModel);
     }
 
     void InitialSizeModel(GameObject loadedModel)
     {
-        // Need to do something about setting the model to a reasonable size.
-        var collider = loadedModel.gameObject.GetComponentInChildren<Collider>();
+        // Try to figure out how big the object is (this turns out to be
+        // more of an art than a science :-S).
+        var bounds = CalculateMeshRendererSizes(loadedModel.transform);
 
-        if (collider != null)
+        // what's the max extent here? 
+        if (bounds.HasValue)
         {
-            // TODO: does querying bounds like this work at this point?
-            var bounds = collider.bounds;
-
-            // what's the max extent here? 
-            var maxExtent = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
+            var maxDimension = Mathf.Max(
+                bounds.Value.size.x, bounds.Value.size.y, bounds.Value.size.z);
 
             // what the scale factor we need then (extent is half the size of the box).
-            var scaleFactor = MODEL_START_SIZE / (maxExtent * 2.0f);
+            var scaleFactor = MODEL_START_SIZE / maxDimension;
 
             // scale it.
             loadedModel.gameObject.transform.localScale = Vector3.one * scaleFactor;
-
-            // record it so that we can put it back on the 'reset' command.
-            this.initialScaleFactor = loadedModel.gameObject.transform.localScale;
         }
+        // record it so that we can put it back on the 'reset' command.
+        this.initialScaleFactor = loadedModel.gameObject.transform.localScale;
+    }
+    static Bounds? CalculateMeshRendererSizes(Transform objectTransform)
+    {
+        var thisFilter = objectTransform.GetComponent<MeshRenderer>();
+        var childFilters = objectTransform.GetComponentsInChildren<MeshRenderer>(true).ToList();
+        
+        if (thisFilter != null)
+        {
+            childFilters.Insert(0, thisFilter);
+        }
+        Bounds? result = null;
+
+        foreach (var filter in childFilters)
+        {
+            var bounds = filter.bounds;
+
+            if (result == null)
+            {
+                result = bounds;
+            }
+            else
+            {
+                result.Value.Encapsulate(bounds.min);
+                result.Value.Encapsulate(bounds.max);
+            }
+        }
+        return result;
     }
 
     void AddManipulationsToModel(GameObject loadedModel)
@@ -129,7 +181,6 @@ public class ModelController : AwaitableMonoBehaviour
         twoHandManips.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
         twoHandManips.RotationConstraint = AxisConstraint.None;
     }
-
     void PositionParentForModel()
     {
         // Move the parent to be approx 3m down the user's gaze.
@@ -142,9 +193,8 @@ public class ModelController : AwaitableMonoBehaviour
 
         // Move the parent to this new position. From there, the parent doesn't
         // get moved, scaled, rotated, only the model (child) will.
-        this.GLTFModelParent.transform.position = parentPosition;
+        this.GLTFModelParent.transform.localPosition = parentPosition;
     }
-
     GameObject CurrentModel
     {
         get
@@ -160,8 +210,9 @@ public class ModelController : AwaitableMonoBehaviour
     void DisposeExistingGLTFModel()
     {
         if (this.CurrentModel != null)
-        {       
+        {
             Destroy(this.CurrentModel.GetComponent<TwoHandManipulatable>());
+            Destroy(this.CurrentModel.GetComponent<WorldAnchor>());
             Destroy(this.CurrentModel);
             this.initialScaleFactor = null;
         }
