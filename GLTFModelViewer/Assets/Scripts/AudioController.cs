@@ -10,7 +10,8 @@ public enum AudioClipType
 {
     Welcome,
     Resetting,
-    LoadError
+    LoadError,
+    WelcomeBack
 }
 [Serializable]
 public class AudioClipEntry
@@ -53,10 +54,9 @@ public class AudioController : MonoBehaviour
 
 #endif // ENABLE_WINMD_SUPPORT
 
-        if (playWelcome)
-        {
-            this.PlayClip(AudioClipType.Welcome);
-        }
+        var clip = playWelcome ? AudioClipType.Welcome : AudioClipType.WelcomeBack;
+
+        this.PlayClip(AudioClipType.Welcome);
     }
     readonly string FIRST_RUN_KEY_NAME = "FirstRun";
 }

@@ -11,13 +11,13 @@ PlayerSettings:
   targetDevice: 2
   useOnDemandResources: 0
   accelerometerFrequency: 60
-  companyName: DefaultCompany
-  productName: GLTFModelViewer
+  companyName: Mike Taulty
+  productName: GLB Viewer
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
-  m_ShowUnitySplashScreen: 1
-  m_ShowUnitySplashLogo: 1
+  m_ShowUnitySplashScreen: 0
+  m_ShowUnitySplashLogo: 0
   m_SplashScreenOverlayOpacity: 1
   m_SplashScreenAnimation: 1
   m_SplashScreenLogoStyle: 1
@@ -39,7 +39,8 @@ PlayerSettings:
     width: 1
     height: 1
   m_SplashScreenLogos: []
-  m_VirtualRealitySplashScreen: {fileID: 0}
+  m_VirtualRealitySplashScreen: {fileID: 2800000, guid: 176a6659bb3d4e24180e3b819dd0e4a3,
+    type: 3}
   m_HolographicTrackingLossScreen: {fileID: 0}
   defaultScreenWidth: 1024
   defaultScreenHeight: 768
@@ -563,27 +564,55 @@ PlayerSettings:
   apiCompatibilityLevelPerPlatform: {}
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: GLTFModelViewer
+  metroPackageName: GLBModelViewer
   metroPackageVersion: 1.0.0.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
   metroCertificateIssuer: DefaultCompany
   metroCertificateNotAfter: 00285638d290d501
-  metroApplicationDescription: GLTFModelViewer
-  wsaImages: {}
-  metroTileShortName: 
+  metroApplicationDescription: GLB Viewer is a simple application for viewing glTF
+    models stored in binary GLB files on your HoloLens. The application is driven
+    with a mixture of voice commands and gestures.
+  wsaImages:
+    65636: Assets/Publication/square50x50.scale-100.png
+    65661: 
+    65686: Assets/Publication/Square50x50.scale-150.png
+    65736: 
+    65936: 
+    131222: Assets/Publication/splash620x300.scale-150.png
+    131272: Assets/Publication/splash620x300.scale-200.png
+    720996: 
+    786532: 
+    2031632: 
+    2031640: 
+    2031664: 
+    2031716: Assets/Publication/square44x44.scale-100.png
+    2031741: 
+    2031766: 
+    2031816: Assets/Publication/square44x44.scale-200.png
+    2031872: 
+    2032016: 
+    2097252: Assets/Publication/Square71x71.scale-100.png
+    2162788: Assets/Publication/Square150x150.scale-100.png
+    2162813: 
+    2162838: 
+    2162888: Assets/Publication/square150x150.scale-200.png
+    2163088: 
+    2228324: Assets/Publication/Square310x310.scale-100.png
+    2293860: Assets/Publication/Wide310x150.scale-100.png
+    2293885: 
+  metroTileShortName: GLB Viewer
   metroCommandLineArgsFile: 
   metroTileShowName: 0
-  metroMediumTileShowName: 0
-  metroLargeTileShowName: 0
-  metroWideTileShowName: 0
+  metroMediumTileShowName: 1
+  metroLargeTileShowName: 1
+  metroWideTileShowName: 1
   metroDefaultTileSize: 1
-  metroTileForegroundText: 2
-  metroTileBackgroundColor: {r: 0.13333334, g: 0.17254902, b: 0.21568628, a: 0}
-  metroSplashScreenBackgroundColor: {r: 0.12941177, g: 0.17254902, b: 0.21568628,
-    a: 1}
-  metroSplashScreenUseBackgroundColor: 0
+  metroTileForegroundText: 1
+  metroTileBackgroundColor: {r: 0.5411765, g: 0.77254903, b: 0.2509804, a: 1}
+  metroSplashScreenBackgroundColor: {r: 0.5411765, g: 0.77254903, b: 0.2509804, a: 1}
+  metroSplashScreenUseBackgroundColor: 1
   platformCapabilities:
     WindowsStoreApps:
       AllJoyn: False

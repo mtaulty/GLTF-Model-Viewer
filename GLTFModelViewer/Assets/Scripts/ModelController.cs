@@ -19,6 +19,7 @@ public class ModelController : AwaitableMonoBehaviour
     bool Opening { get; set; }
 
     Vector3? initialScaleFactor;
+    Transform initialLookPoint;
 
     public async void OnOpenSpeechCommand()
     {
@@ -45,6 +46,7 @@ public class ModelController : AwaitableMonoBehaviour
             this.CurrentModel.transform.localPosition = Vector3.zero;
             this.CurrentModel.transform.localRotation = Quaternion.identity;
             this.CurrentModel.transform.localScale = (Vector3)this.initialScaleFactor;
+            this.CurrentModel.transform.LookAt(this.initialLookPoint);
         }
     }
     public async Task OpenNewModelAsync()
@@ -104,18 +106,11 @@ public class ModelController : AwaitableMonoBehaviour
         this.InitialSizeModel(loadedModel);
 
         // Point the model towards the camera.
-        loadedModel.transform.LookAt(Camera.main.transform);
+        this.initialLookPoint = Camera.main.transform;
+        loadedModel.transform.LookAt(this.initialLookPoint);
 
         // Add the behaviours which let the user size, scale, rotate the model.
         this.AddManipulationsToModel(loadedModel);
-
-        // Add a world anchor (we don't try to be smart with this, we just add one)
-        this.AddWorldAnchorToModel(loadedModel);
-
-    }
-    void AddWorldAnchorToModel(GameObject loadedModel)
-    {
-        var worldAnchor = loadedModel.gameObject.AddComponent<WorldAnchor>();        
     }
     void ParentAndPositionModel(GameObject loadedModel)
     {
@@ -183,6 +178,14 @@ public class ModelController : AwaitableMonoBehaviour
     }
     void PositionParentForModel()
     {
+        // Unanchor the parent.
+        var anchor = this.GLTFModelParent.GetComponent<WorldAnchor>();
+
+        if (anchor != null)
+        {
+            Destroy(anchor);
+        }
+
         // Move the parent to be approx 3m down the user's gaze.
         var parentPosition =
             Camera.main.transform.position +
@@ -194,6 +197,9 @@ public class ModelController : AwaitableMonoBehaviour
         // Move the parent to this new position. From there, the parent doesn't
         // get moved, scaled, rotated, only the model (child) will.
         this.GLTFModelParent.transform.localPosition = parentPosition;
+
+        // Anchor the parent.
+        this.GLTFModelParent.AddComponent<WorldAnchor>();
     }
     GameObject CurrentModel
     {
@@ -210,11 +216,11 @@ public class ModelController : AwaitableMonoBehaviour
     void DisposeExistingGLTFModel()
     {
         if (this.CurrentModel != null)
-        {
+        { 
             Destroy(this.CurrentModel.GetComponent<TwoHandManipulatable>());
-            Destroy(this.CurrentModel.GetComponent<WorldAnchor>());
             Destroy(this.CurrentModel);
             this.initialScaleFactor = null;
+            this.initialLookPoint = null;
         }
     }
     static readonly float MODEL_START_SIZE = 0.5f;
