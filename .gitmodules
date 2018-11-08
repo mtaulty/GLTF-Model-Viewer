@@ -1,3 +1,6 @@
 [submodule "MixedRealityToolkit-Unity"]
 	path = MixedRealityToolkit-Unity
 	url = https://github.com/Microsoft/MixedRealityToolkit-Unity.git
+[submodule "UnityGLTF"]
+	path = UnityGLTF
+	url = https://github.com/KhronosGroup/UnityGLTF.git
