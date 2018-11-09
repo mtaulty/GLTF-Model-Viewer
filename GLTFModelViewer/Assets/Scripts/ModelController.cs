@@ -1,4 +1,5 @@
-﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
+﻿using HoloToolkit.Unity.InputModule;
+using HoloToolkit.Unity.InputModule.Utilities.Interactions;
 using HoloToolkit.Unity.UX;
 using HoloToolkit.UX.Progress;
 using System;
@@ -17,6 +18,9 @@ public class ModelController : AwaitableMonoBehaviour
 
     [SerializeField]
     private BoundingBox boundingBoxPrefab;
+
+    [SerializeField]
+    private ObjectCursor cursor;
 
     bool Opening { get; set; }
 
@@ -56,6 +60,8 @@ public class ModelController : AwaitableMonoBehaviour
 
         if (!string.IsNullOrEmpty(filePath))
         {
+            this.ShowCursor(false);
+
             // TODO: this progress indicator is broken at the moment. I've 
             // parented it off the camera for now which I'm not meant to do
             // but the examples in the toolkit don't work for me either -
@@ -82,6 +88,7 @@ public class ModelController : AwaitableMonoBehaviour
                     gameObject =>
                     {
                         ProgressIndicator.Instance.Close();
+                        this.ShowCursor(true);
 
                         if (gameObject != null)
                         { 
@@ -101,6 +108,12 @@ public class ModelController : AwaitableMonoBehaviour
         {
             completionCallback?.Invoke(null);
         }
+    }
+    void ShowCursor(bool show=true)
+    {
+        // My first attempt here was to do this...but that does something else :-(
+        // this.cursor.SetVisibility(show);
+        this.cursor.gameObject.SetActive(show);
     }
     void AddNewGLTFModel(GameObject loadedModel)
     {
