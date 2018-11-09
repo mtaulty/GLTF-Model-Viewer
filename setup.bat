@@ -6,12 +6,12 @@ mklink /j GLTFModelViewer\Assets\HoloToolkit .\MixedRealityToolkit-Unity\Assets\
 
 rem get rid of the GLTF embedded into the toolkit.
 
-rmdir /s .\MixedRealityToolkit-Unity\Assets\HoloToolkit\Utilities\Scripts\GLTF\
+rmdir /s /q .\MixedRealityToolkit-Unity\Assets\HoloToolkit\Utilities\Scripts\GLTF\
 
 rem get rid of files which will now cause a problem because the GLTF serializer that they are
 rem dependent upon has changed since they took their dependency.
 
-del Assets/HoloToolkit/Input/Scripts/Utilities/MotionControllerVisualizer.cs
+del .\MixedRealityToolkit-Unity\Assets\HoloToolkit\Input\Scripts\Utilities\MotionControllerVisualizer.cs
 
 rem build the GLTF serializer.
 rem apologies you are going to need to install Nuget.exe here as one project here uses packages.config
@@ -26,12 +26,23 @@ msbuild /target:GLTFSerialization /p:Platform="Any CPU" /p:Configuration="Releas
 
 rem copy the outputs out of there into the UnityGLTF project structure.
 
-copy .\UnityGLTF\GLTFSerialization\GLTFSerialization\obj\release\*.dll .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\plugins\
-copy .\UnityGLTF\GLTFSerialization\GLTFSerializationUWP\obj\Release\*.dll .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\plugins\UWP\
+copy /Y .\UnityGLTF\GLTFSerialization\GLTFSerialization\obj\release\*.dll .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\plugins\
+copy /Y .\UnityGLTF\GLTFSerialization\GLTFSerializationUWP\obj\Release\*.dll .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\plugins\UWP\
 
 rem now link that into the right place under our project structure.
 
-mkdir GLTFModelViewer\Assets\UnityGLTF
-mklink /j GLTFModelViewer\Assets\UnityGLTF\Resources .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\Resources
+rem no longer need this next step I hope
+rem mkdir GLTFModelViewer\Assets\UnityGLTF
+
+rem bring in the pieces of UnityGLTF that I think I need.
+mklink /j GLTFModelViewer\Assets\Resources\UnityGLTF .\UnityGLTF\UnityGLTF\Assets\Resources
 mklink /j GLTFModelViewer\Assets\UnityGLTF\Scripts .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\Scripts
 mklink /j GLTFModelViewer\Assets\UnityGLTF\Plugins .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\Plugins
+mklink /j GLTFModelViewer\Assets\UnityGLTF\Shaders .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\Shaders
+
+del GLTFModelViewer\Assets\Resources\UnityGLTF\*.cs
+del GLTFModelViewer\Assets\Resources\UnityGLTF\*.prefab
+
+rem get rid of the pieces of UnityGLTF that I do not think I need
+
+

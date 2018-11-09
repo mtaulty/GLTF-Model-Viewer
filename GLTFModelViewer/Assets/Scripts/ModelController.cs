@@ -2,11 +2,13 @@
 using HoloToolkit.Unity.UX;
 using HoloToolkit.UX.Progress;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.WSA;
 using UnityGLTF;
+using UnityGLTF.Loader;
 
 public class ModelController : AwaitableMonoBehaviour
 {
@@ -21,19 +23,12 @@ public class ModelController : AwaitableMonoBehaviour
     Vector3? initialScaleFactor;
     Transform initialLookPoint;
 
-    public async void OnOpenSpeechCommand()
+    public void OnOpenSpeechCommand()
     {
         if (!this.Opening)
         {
-            try
-            {
-                this.Opening = true;
-                await this.OpenNewModelAsync();
-            }
-            finally
-            {
-                this.Opening = false;
-            }
+            this.OpenNewModelAsync(
+                gameObject => this.Opening = false);
         }
     }
     public void OnResetSpeechCommand()
@@ -49,7 +44,7 @@ public class ModelController : AwaitableMonoBehaviour
             this.CurrentModel.transform.LookAt(this.initialLookPoint);
         }
     }
-    public async Task OpenNewModelAsync()
+    public async void OpenNewModelAsync(Action<GameObject> completionCallback)
     {
         // Get rid of the previous model regardless of whether the user chooses
         // a new one or not with a review to avoiding cluttering the screen.
@@ -57,9 +52,9 @@ public class ModelController : AwaitableMonoBehaviour
 
         // Note - this method will throw inside of the editor, only does something
         // on the UWP platform.
-        var stream = await FileDialogHelper.PickGLTFFileAsync();
+        var filePath = await FileDialogHelper.PickGLTFFileAsync();
 
-        if (stream != null)
+        if (!string.IsNullOrEmpty(filePath))
         {
             // TODO: this progress indicator is broken at the moment. I've 
             // parented it off the camera for now which I'm not meant to do
@@ -73,25 +68,36 @@ public class ModelController : AwaitableMonoBehaviour
                 ProgressMessageStyleEnum.Visible,
                 "Loading...");
 
-            // Try to load that model
+            // Try to load that model.
+            var loader = new FileLoader(Path.GetDirectoryName(filePath));
+
             GLTFSceneImporter importer = new GLTFSceneImporter(
-                "/", stream, null, true);
+                Path.GetFileName(filePath), loader);
 
-            await base.RunCoroutineAsync(importer.Load(-1, true));
+            await base.RunCoroutineAsync(
+                importer.LoadScene(
+                    -1,
+                    gameObject =>
+                    {
+                        ProgressIndicator.Instance.Close();
 
-            ProgressIndicator.Instance.Close();
-
-            // Did we load?
-            if (importer.LastLoadedScene != null)
-            {
-                // Replace it with the new model
-                this.AddNewGLTFModel(importer.LastLoadedScene);
-            }
-            else
-            {
-                var audioController = this.gameObject.GetComponent<AudioController>();
-                audioController?.PlayClip(AudioClipType.LoadError);
-            }
+                        if (gameObject != null)
+                        { 
+                            // Replace it with the new model
+                            this.AddNewGLTFModel(gameObject);
+                        }
+                        else
+                        {
+                            var audioController = this.gameObject.GetComponent<AudioController>();
+                            audioController?.PlayClip(AudioClipType.LoadError);
+                        }
+                    }
+                )
+            );
+        }
+        else
+        {
+            completionCallback?.Invoke(null);
         }
     }
     void AddNewGLTFModel(GameObject loadedModel)

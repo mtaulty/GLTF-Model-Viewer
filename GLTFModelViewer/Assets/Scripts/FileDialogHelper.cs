@@ -9,10 +9,10 @@ using Windows.Storage.Pickers;
 
 internal static class FileDialogHelper
 {
-    internal static async Task<Stream> PickGLTFFileAsync()
+    internal static async Task<string> PickGLTFFileAsync()
     {
 #if ENABLE_WINMD_SUPPORT
-        TaskCompletionSource<Stream> streamCompleted = new TaskCompletionSource<Stream>();
+        var pickCompleted = new TaskCompletionSource<string>();
 
         UnityEngine.WSA.Application.InvokeOnUIThread(
             async () =>
@@ -27,20 +27,20 @@ internal static class FileDialogHelper
                 picker.CommitButtonText = "Select Model";
 
                 var file = await picker.PickSingleFileAsync();
+                string filePath = null;
 
                 if (file != null)
                 {
-                    var fileStream = await file.OpenReadAsync();
-                    stream = fileStream.AsStreamForRead();
+                    filePath = file.Path;
                 }
-                streamCompleted.SetResult(stream);
+                pickCompleted.SetResult(filePath);
             },
             true
         );
 
-        await streamCompleted.Task;
+        await pickCompleted.Task;
 
-        return (streamCompleted.Task.Result);
+        return (pickCompleted.Task.Result);
 
 #else             
         throw new InvalidOperationException(
