@@ -40,9 +40,10 @@ mklink /j GLTFModelViewer\Assets\UnityGLTF\Scripts .\UnityGLTF\UnityGLTF\Assets\
 mklink /j GLTFModelViewer\Assets\UnityGLTF\Plugins .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\Plugins
 mklink /j GLTFModelViewer\Assets\UnityGLTF\Shaders .\UnityGLTF\UnityGLTF\Assets\UnityGLTF\Shaders
 
+rem get rid of the pieces of UnityGLTF that I do not think I need
 del GLTFModelViewer\Assets\Resources\UnityGLTF\*.cs
 del GLTFModelViewer\Assets\Resources\UnityGLTF\*.prefab
 
-rem get rid of the pieces of UnityGLTF that I do not think I need
-
+rem try to get hold of the right JSON library, this is horribly brittle right now
+copy /Y ".\UnityGLTF\GLTFSerialization\packages\Newtonsoft.Json.9.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll" .\GLTFModelViewer\Assets\UnityGLTF\plugins\
 

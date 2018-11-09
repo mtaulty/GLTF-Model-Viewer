@@ -74,6 +74,8 @@ public class ModelController : AwaitableMonoBehaviour
             GLTFSceneImporter importer = new GLTFSceneImporter(
                 Path.GetFileName(filePath), loader);
 
+            importer.Collider = GLTFSceneImporter.ColliderType.Box;
+
             await base.RunCoroutineAsync(
                 importer.LoadScene(
                     -1,
@@ -148,8 +150,8 @@ public class ModelController : AwaitableMonoBehaviour
     }
     static Bounds? CalculateMeshRendererSizes(Transform objectTransform)
     {
-        var thisFilter = objectTransform.GetComponent<MeshRenderer>();
-        var childFilters = objectTransform.GetComponentsInChildren<MeshRenderer>(true).ToList();
+        var thisFilter = objectTransform.GetComponent<Renderer>();
+        var childFilters = objectTransform.GetComponentsInChildren<Renderer>(true).ToList();
         
         if (thisFilter != null)
         {
