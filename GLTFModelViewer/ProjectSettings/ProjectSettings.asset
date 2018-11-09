@@ -12,7 +12,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: Mike Taulty
-  productName: GLB Viewer
+  productName: glTF Viewer
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -564,16 +564,16 @@ PlayerSettings:
   apiCompatibilityLevelPerPlatform: {}
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: GLBModelViewer
+  metroPackageName: GLTFViewer
   metroPackageVersion: 1.0.0.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
   metroCertificateIssuer: DefaultCompany
   metroCertificateNotAfter: 00285638d290d501
-  metroApplicationDescription: GLB Viewer is a simple application for viewing glTF
-    models stored in binary GLB files on your HoloLens. The application is driven
-    with a mixture of voice commands and gestures.
+  metroApplicationDescription: glTF Viewer is a simple application for viewing glTF
+    models stored in files/folders on your HoloLens. The application is driven with
+    a mixture of voice commands and gestures.
   wsaImages:
     65636: Assets/Publication/square50x50.scale-100.png
     65661: 
@@ -602,7 +602,7 @@ PlayerSettings:
     2228324: Assets/Publication/Square310x310.scale-100.png
     2293860: Assets/Publication/Wide310x150.scale-100.png
     2293885: 
-  metroTileShortName: GLB Viewer
+  metroTileShortName: glTF Viewer
   metroCommandLineArgsFile: 
   metroTileShowName: 0
   metroMediumTileShowName: 1
@@ -623,7 +623,7 @@ PlayerSettings:
       EnterpriseAuthentication: False
       HumanInterfaceDevice: False
       InputInjectionBrokered: False
-      InternetClient: True
+      InternetClient: False
       InternetClientServer: False
       Location: False
       Microphone: True
@@ -635,7 +635,7 @@ PlayerSettings:
       Proximity: False
       RemovableStorage: False
       SharedUserCertificates: False
-      SpatialPerception: False
+      SpatialPerception: True
       UserAccountInformation: False
       VideosLibrary: False
       VoipCall: False
