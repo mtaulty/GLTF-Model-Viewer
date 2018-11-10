@@ -406,13 +406,13 @@ MonoBehaviour:
   - clipType: 0
     clip: {fileID: 8300000, guid: e7f8fb77a12aa3b4fa7a9f7265b6e5de, type: 3}
   - clipType: 1
-    clip: {fileID: 8300000, guid: d9d910a9d12257e42b3d6072672216bf, type: 3}
+    clip: {fileID: 8300000, guid: f247b4b4c6e72a043a03207bca3014cb, type: 3}
   - clipType: 2
     clip: {fileID: 8300000, guid: a2cd3db263824ec4f85444c8b36d21a7, type: 3}
   - clipType: 3
     clip: {fileID: 8300000, guid: 82ff2273ddfd615439ae9029c8ca9c24, type: 3}
   - clipType: 4
-    clip: {fileID: 8300000, guid: 82ff2273ddfd615439ae9029c8ca9c24, type: 3}
+    clip: {fileID: 8300000, guid: 3500ded6447764b428b1c0ce54a82ace, type: 3}
 --- !u!1 &465988486
 GameObject:
   m_ObjectHideFlags: 0
