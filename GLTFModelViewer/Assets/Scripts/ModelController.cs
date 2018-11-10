@@ -11,7 +11,7 @@ using UnityEngine.XR.WSA;
 using UnityGLTF;
 using UnityGLTF.Loader;
 
-public class ModelController : AwaitableMonoBehaviour
+public class ModelController : ExtendedMonoBehaviour
 {
     [SerializeField]
     private GameObject GLTFModelParent;
@@ -26,6 +26,8 @@ public class ModelController : AwaitableMonoBehaviour
 
     Vector3? initialScaleFactor;
     Transform initialLookPoint;
+
+    AudioController AudioController => this.gameObject.GetComponent<AudioController>();
 
     public void OnOpenSpeechCommand()
     {
@@ -47,7 +49,7 @@ public class ModelController : AwaitableMonoBehaviour
             this.CurrentModel.transform.localScale = (Vector3)this.initialScaleFactor;
             this.CurrentModel.transform.LookAt(this.initialLookPoint);
         }
-    }
+    }   
     public async void OpenNewModelAsync(Action<GameObject> completionCallback)
     {
         // Get rid of the previous model regardless of whether the user chooses
@@ -62,53 +64,57 @@ public class ModelController : AwaitableMonoBehaviour
         {
             this.ShowCursor(false);
 
-            // TODO: this progress indicator is broken at the moment. I've 
-            // parented it off the camera for now which I'm not meant to do
-            // but the examples in the toolkit don't work for me either -
-            // the progress opens up in weird places, doesn't tag-a-long
-            // and I'm not sure of the best way to fix it yet without
-            // just making my own progress indicator.
             ProgressIndicator.Instance.Open(
                 IndicatorStyleEnum.AnimatedOrbs,
                 ProgressStyleEnum.None,
                 ProgressMessageStyleEnum.Visible,
                 "Loading...");
 
-            // Try to load that model.
             var loader = new FileLoader(Path.GetDirectoryName(filePath));
 
-            GLTFSceneImporter importer = new GLTFSceneImporter(
-                Path.GetFileName(filePath), loader);
+            GLTFSceneImporter importer = new GLTFSceneImporter(Path.GetFileName(filePath), loader);
 
             importer.Collider = GLTFSceneImporter.ColliderType.Box;
 
-            await base.RunCoroutineAsync(
-                importer.LoadScene(
-                    -1,
-                    gameObject =>
-                    {
-                        ProgressIndicator.Instance.Close();
-                        this.ShowCursor(true);
-
-                        if (gameObject != null)
-                        { 
-                            // Replace it with the new model
-                            this.AddNewGLTFModel(gameObject);
-                        }
-                        else
-                        {
-                            var audioController = this.gameObject.GetComponent<AudioController>();
-                            audioController?.PlayClip(AudioClipType.LoadError);
-                        }
-                    }
-                )
-            );
+            try
+            {
+                await base.RunCoroutineAsync(
+                    importer.LoadScene(
+                        -1,
+                        gameObject => this.LoadedCompletionHandler(gameObject, completionCallback)
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                this.LoadedCompletionHandler(null, completionCallback);
+            }
         }
         else
         {
             completionCallback?.Invoke(null);
         }
     }
+    void LoadedCompletionHandler(GameObject loadedObject, Action<GameObject> callback)
+    {
+        ProgressIndicator.Instance.Close();
+
+        this.ShowCursor(true);
+
+        if (loadedObject != null)
+        {
+            this.AudioController?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
+
+            // Replace it with the new model
+            this.AddNewGLTFModel(loadedObject);
+        }
+        else
+        {
+            this.AudioController?.PlayClip(AudioClipType.LoadError);
+        }
+        callback(loadedObject);
+    }
+
     void ShowCursor(bool show=true)
     {
         // My first attempt here was to do this...but that does something else :-(

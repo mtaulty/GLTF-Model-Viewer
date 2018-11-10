@@ -11,7 +11,8 @@ public enum AudioClipType
     Welcome,
     Resetting,
     LoadError,
-    WelcomeBack
+    WelcomeBack,
+    FirstModelOpened
 }
 [Serializable]
 public class AudioClipEntry
@@ -39,24 +40,38 @@ public class AudioController : MonoBehaviour
             this.audioSource.Play();
         }
     }
+    public bool HasClipPlayedPreviously(AudioClipType clipType)
+    {
+#if ENABLE_WINMD_SUPPORT
+        var clipName = clipType.ToString();
+
+        return (ApplicationData.Current.LocalSettings.Values.ContainsKey(clipName));
+#else
+        throw new NotImplementedException();
+#endif
+    }
+    public bool PlayClipOnceOnly(AudioClipType clipType)
+    {
+#if ENABLE_WINMD_SUPPORT
+        bool play = !this.HasClipPlayedPreviously(clipType);
+
+        if (play)
+        {
+            var clipName = clipType.ToString();
+            ApplicationData.Current.LocalSettings.Values[clipName] = true;
+            this.PlayClip(clipType);
+        }
+        return (play);
+#else
+        throw new NotImplementedException();
+#endif 
+    }
     void Start()
     {
-        var playWelcome = true;
-
-#if ENABLE_WINMD_SUPPORT
-
-        playWelcome = !ApplicationData.Current.LocalSettings.Values.ContainsKey(FIRST_RUN_KEY_NAME);
-
-        if (playWelcome)
-        {   
-            ApplicationData.Current.LocalSettings.Values[FIRST_RUN_KEY_NAME] = true;
+        if (!this.PlayClipOnceOnly(AudioClipType.Welcome))
+        {
+            this.PlayClip(AudioClipType.WelcomeBack);
         }
-
-#endif // ENABLE_WINMD_SUPPORT
-
-        var clip = playWelcome ? AudioClipType.Welcome : AudioClipType.WelcomeBack;
-
-        this.PlayClip(AudioClipType.Welcome);
     }
     readonly string FIRST_RUN_KEY_NAME = "FirstRun";
 }
