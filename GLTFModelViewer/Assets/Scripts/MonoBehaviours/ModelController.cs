@@ -93,19 +93,13 @@ public class ModelController : ExtendedMonoBehaviour
         {
             this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
 
-#if ZERO
-            // Give the model a new identity
-            this.ModelIdentifier.CreateNew();
-
             // The new model should be on the gaze vector so the parent will have moved
             // so we need to put its anchor back
             this.AnchorManager.AddAnchorToModelParent();
 
-            // This bit is all untested yet...
-
             // We have a new model so we can reset our notion of its identity
             this.ModelIdentifier.CreateNew();
-
+#if ZERO
             // We can write out all the files that were part of loading this model
             // into a file in case they need sharing in future.
             await this.FileStorageManager.StoreFileListAsync(fileRecorder);
