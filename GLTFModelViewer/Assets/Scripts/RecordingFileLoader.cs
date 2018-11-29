@@ -68,6 +68,7 @@ public class RecordingFileLoader : ILoader
         {
             yield return null;
         } 
+        // TODO: What happens with exceptions here on that task?
 #else
         yield return null;
 #endif // ENABLE_WINMD_SUPPORT

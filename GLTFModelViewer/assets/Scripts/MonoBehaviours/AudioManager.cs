@@ -12,7 +12,8 @@ public enum AudioClipType
     Resetting,
     LoadError,
     WelcomeBack,
-    FirstModelOpened
+    FirstModelOpened,
+    PickFileFrom3DObjectsFolder
 }
 [Serializable]
 public class AudioClipEntry
@@ -23,7 +24,7 @@ public class AudioClipEntry
     [SerializeField]
     public AudioClip clip;
 }
-public class AudioController : MonoBehaviour
+public class AudioManager : MonoBehaviour
 {
     [SerializeField]
     AudioSource audioSource;
