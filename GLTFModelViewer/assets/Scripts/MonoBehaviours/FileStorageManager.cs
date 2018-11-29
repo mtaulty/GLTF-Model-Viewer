@@ -14,6 +14,7 @@ public class FileStorageManager : MonoBehaviour
 {
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
 
+    static readonly string SUBFOLDER_PATH = "gltfViewer";
     static readonly string FILE_LIST_FILE_EXTENSION = ".fil";
     static readonly string FILE_ANCHOR_FILE_EXTENSION = ".anc";
 
@@ -32,8 +33,7 @@ public class FileStorageManager : MonoBehaviour
 
         var fileName = $"{this.ModelIdentifier.Identifier}{FILE_LIST_FILE_EXTENSION}";
 
-        var file = await KnownFolders.Objects3D.CreateFileAsync(
-            fileName, CreationCollisionOption.ReplaceExisting);
+        var file = await CreateSubFolderFileAsync(fileName);
 
         await FileIO.WriteLinesAsync(file, relativePaths);
 
@@ -44,12 +44,22 @@ public class FileStorageManager : MonoBehaviour
 #if ENABLE_WINMD_SUPPORT
         var fileName = $"{this.ModelIdentifier.Identifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
-        var file = await KnownFolders.Objects3D.CreateFileAsync(
-            fileName, CreationCollisionOption.ReplaceExisting);
+        var file = await CreateSubFolderFileAsync(fileName);
 
         await FileIO.WriteBytesAsync(file, worldAnchorBits);
 
 #endif // ENABLE_WINMD_SUPPORT
-    }
+    }    
+#if ENABLE_WINMD_SUPPORT
+    static async Task<StorageFile> CreateSubFolderFileAsync(string fileName)
+    {
+        var parentFolder = KnownFolders.Objects3D;
 
+        var subFolder = await parentFolder.CreateFolderAsync(SUBFOLDER_PATH, CreationCollisionOption.OpenIfExists);
+
+        var storageFile = await subFolder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
+
+        return (storageFile);
+    }    
+#endif // ENABLE_WINMD_SUPPORT
 }

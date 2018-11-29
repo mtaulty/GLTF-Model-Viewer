@@ -99,14 +99,18 @@ public class ModelController : ExtendedMonoBehaviour
 
             // We have a new model so we can reset our notion of its identity
             this.ModelIdentifier.CreateNew();
-#if ZERO
+
             // We can write out all the files that were part of loading this model
             // into a file in case they need sharing in future.
             await this.FileStorageManager.StoreFileListAsync(fileRecorder);
 
-            // And export the anchor into the file system as well
-            await this.AnchorManager.ExportAnchorAsync();
-#endif // ZERO
+            // And export the anchor into the file system as well.
+            var bits = await this.AnchorManager.ExportAnchorAsync();
+
+            if (bits != null)
+            {
+                await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
+            }
         }
         else
         {

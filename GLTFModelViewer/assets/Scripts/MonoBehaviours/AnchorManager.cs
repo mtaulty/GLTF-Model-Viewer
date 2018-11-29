@@ -25,9 +25,20 @@ public class AnchorManager : MonoBehaviour
         // Anchor the parent.
         this.ParentProvider.GLTFModelParent.AddComponent<WorldAnchor>();
     }
-    public async Task ExportAnchorAsync()
+    public async Task<byte[]> ExportAnchorAsync()
     {
+        // Before we can export the anchor, we probably need to wait for it to
+        // say that it is located otherwise (AFAIK) the export fails.
+        await AwaitableUpdateLoopCondition.WaitForConditionAsync(
+            this.ParentProvider.GLTFModelParent,
+            parent => parent.GetComponent<WorldAnchor>().isLocated);
 
+        // We now think that the anchor is located so we can try to export it
+        // into a file.
+        // TODO: has to be a whole range of failures/errors here for us to think about...
+        byte[] bits = await ExportWorldAnchorForGameObjectAsync(this.ParentProvider.GLTFModelParent);
+
+        return (bits);
     }
     public static async void ImportWorldAnchorToGameObject(
         GameObject gameObject,
