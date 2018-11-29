@@ -70,7 +70,7 @@ public class ModelController : ExtendedMonoBehaviour
                 ProgressMessageStyleEnum.Visible,
                 "Loading...");
 
-            var loader = new FileLoader(Path.GetDirectoryName(filePath));
+            var loader = new RecordingFileLoader(Path.GetDirectoryName(filePath));
 
             GLTFSceneImporter importer = new GLTFSceneImporter(Path.GetFileName(filePath), loader);
 
