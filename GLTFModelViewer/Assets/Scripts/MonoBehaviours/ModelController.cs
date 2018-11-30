@@ -18,7 +18,14 @@ public class ModelController : ExtendedMonoBehaviour
     FileStorageManager FileStorageManager => this.gameObject.GetComponent<FileStorageManager>();
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
     AnchorManager AnchorManager => this.gameObject.GetComponent<AnchorManager>();
+    NetworkMessageManager NetworkManager => this.gameObject.GetComponent<NetworkMessageManager>();
 
+    void OnNewModelFromNetwork(object sender, NewModelOnNetworkEventArgs e)
+    {
+        // Someone has multicasted that there is a new model on the network
+        // that we can now download to our local storage and potentially
+        // open up.
+    }
     public async void OnOpenSpeechCommand()
     {
         if (!this.Opening)
@@ -109,7 +116,13 @@ public class ModelController : ExtendedMonoBehaviour
 
             if (bits != null)
             {
+                // Store that into the file system so that the web server can later
+                // serve it up on request.
                 await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
+
+                // Message out to the network that we have a new model that they
+                // can optionally grab if they want to.
+                this.NetworkManager.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
             }
         }
         else

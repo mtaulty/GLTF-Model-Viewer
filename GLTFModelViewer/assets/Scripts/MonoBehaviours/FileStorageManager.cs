@@ -18,6 +18,14 @@ public class FileStorageManager : MonoBehaviour
     static readonly string FILE_LIST_FILE_EXTENSION = ".fil";
     static readonly string FILE_ANCHOR_FILE_EXTENSION = ".anc";
 
+    public string WorldAnchorFileName =>
+        $"{this.ModelIdentifier.Identifier}{FILE_ANCHOR_FILE_EXTENSION}";
+
+    public string FileListFileName =>
+        $"{this.ModelIdentifier.Identifier}{FILE_LIST_FILE_EXTENSION}";
+
+    public string AppSubFolderName => SUBFOLDER_PATH;
+
     public async Task StoreFileListAsync(RecordingFileLoader fileRecorder)
     {
 #if ENABLE_WINMD_SUPPORT
@@ -31,9 +39,7 @@ public class FileStorageManager : MonoBehaviour
         var relativePaths = fileRecorder.RelativeLoadedFilePaths.Select(
             path => Path.Combine("\\", relativePath, path).Replace('\\', '/'));
 
-        var fileName = $"{this.ModelIdentifier.Identifier}{FILE_LIST_FILE_EXTENSION}";
-
-        var file = await CreateSubFolderFileAsync(fileName);
+        var file = await CreateSubFolderFileAsync(this.FileListFileName);
 
         await FileIO.WriteLinesAsync(file, relativePaths);
 
@@ -42,22 +48,22 @@ public class FileStorageManager : MonoBehaviour
     public async Task StoreExportedWorldAnchorAsync(byte[] worldAnchorBits)
     {
 #if ENABLE_WINMD_SUPPORT
-        var fileName = $"{this.ModelIdentifier.Identifier}{FILE_ANCHOR_FILE_EXTENSION}";
-
-        var file = await CreateSubFolderFileAsync(fileName);
+        var file = await CreateSubFolderFileAsync(this.WorldAnchorFileName);
 
         await FileIO.WriteBytesAsync(file, worldAnchorBits);
 
 #endif // ENABLE_WINMD_SUPPORT
     }    
 #if ENABLE_WINMD_SUPPORT
-    static async Task<StorageFile> CreateSubFolderFileAsync(string fileName)
+    async Task<StorageFile> CreateSubFolderFileAsync(string fileName)
     {
         var parentFolder = KnownFolders.Objects3D;
 
-        var subFolder = await parentFolder.CreateFolderAsync(SUBFOLDER_PATH, CreationCollisionOption.OpenIfExists);
+        var subFolder = await parentFolder.CreateFolderAsync(
+            this.AppSubFolderName, CreationCollisionOption.OpenIfExists);
 
-        var storageFile = await subFolder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
+        var storageFile = await subFolder.CreateFileAsync(
+            fileName, CreationCollisionOption.ReplaceExisting);
 
         return (storageFile);
     }    

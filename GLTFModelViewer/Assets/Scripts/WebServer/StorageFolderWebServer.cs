@@ -17,7 +17,6 @@ namespace UwpHttpServer
             this.port = port;
             this.folder = folder;
         }
-
         public async Task RunAsync(CancellationToken? cancelToken = null)
         {
             var httpListener = new HttpListener();
