@@ -4,9 +4,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.WSA;
 using UnityGLTF;
+
+public class LoadedModelDetails
+{
+    public LoadedModelDetails(RecordingFileLoader fileLoader)
+    {
+        this.FileLoader = fileLoader;
+    }
+    public GameObject GameObject { get; set; }
+    public RecordingFileLoader FileLoader { get; private set; }
+}
 
 public class ModelLoader : ExtendedMonoBehaviour
 {
@@ -19,28 +30,26 @@ public class ModelLoader : ExtendedMonoBehaviour
 
     ParentProvider ParentProvider => this.gameObject.GetComponent<ParentProvider>();
 
-    public async void OpenNewModelAsync(string filePath, 
-        Action<GameObject, RecordingFileLoader> completionCallback)
+    public async Task<LoadedModelDetails> OpenNewModelAsync(string filePath)
     {
-        var loader = new RecordingFileLoader(Path.GetDirectoryName(filePath));
+        var modelDetails = new LoadedModelDetails(
+            new RecordingFileLoader(Path.GetDirectoryName(filePath)));
 
-        GLTFSceneImporter importer = new GLTFSceneImporter(Path.GetFileName(filePath), loader);
+        GLTFSceneImporter importer = new GLTFSceneImporter(Path.GetFileName(filePath), modelDetails.FileLoader);
 
         importer.Collider = GLTFSceneImporter.ColliderType.Box;
 
-        try
+        await base.RunCoroutineAsync(
+            importer.LoadScene(
+                -1,
+                gameObject => modelDetails.GameObject = gameObject)
+        );        
+
+        if (modelDetails.GameObject != null)
         {
-            await base.RunCoroutineAsync(
-                importer.LoadScene(
-                    -1,
-                    gameObject => this.LoadedCompletionHandler(gameObject, loader, completionCallback)
-                )
-            );
+            this.AddNewGLTFModel(modelDetails.GameObject);
         }
-        catch (Exception ex)
-        {
-            this.LoadedCompletionHandler(null, null, completionCallback);
-        }
+        return (modelDetails);
     }
     public void DisposeExistingGLTFModel()
     {
@@ -61,16 +70,6 @@ public class ModelLoader : ExtendedMonoBehaviour
             this.CurrentModel.transform.localScale = (Vector3)this.initialScaleFactor;
             this.CurrentModel.transform.LookAt(this.initialLookPoint);
         }
-    }
-    void LoadedCompletionHandler(GameObject loadedObject, RecordingFileLoader fileRecorder,
-        Action<GameObject, RecordingFileLoader> callback)
-    {
-        if (loadedObject != null)
-        {
-            // Replace it with the new model
-            this.AddNewGLTFModel(loadedObject);
-        }
-        callback(loadedObject, fileRecorder);
     }
     void AddNewGLTFModel(GameObject loadedModel)
     {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -9,10 +10,6 @@ using Windows.Storage;
 
 public class ModelController : ExtendedMonoBehaviour
 {
-    // These flags will need replacing with a proper state enum at some point.
-    bool Opening { get; set; }
-    bool Downloading { get; set; }
-
     ModelLoader ModelLoader => this.gameObject.GetComponent<ModelLoader>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
@@ -27,58 +24,84 @@ public class ModelController : ExtendedMonoBehaviour
         NetworkMessagingProvider.NewModelOnNetwork += this.OnNewModelFromNetwork;
         NetworkMessagingProvider.Initialise();
     }
+    public async void OnOpenSpeechCommand()
+    {
+        this.ClearExistingModel();
+
+        var filePath = await this.PickFileFrom3DObjectsFolderAsync();
+
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            await this.OpenModelFileAsync(filePath);
+        }
+    }
+    public void OnResetSpeechCommand()
+    {
+        if (this.ModelIdentifier.HasModel)
+        {
+            this.AudioManager.PlayClip(AudioClipType.Resetting);
+
+            this.ModelLoader.ReturnModelToLoadedPosition();
+        }
+    }
+    void ShowBusy(string message)
+    {
+        this.CursorManager.Hide();
+        this.ProgressRingManager.Show(message);
+    }
+    void HideBusy()
+    {
+        this.ProgressRingManager.Hide();
+        this.CursorManager.Show();
+    }
+    async Task<string> DownloadModelToLocalStorageAsync(
+        Guid modelIdentifier, IPAddress ipAddress)
+    {
+        var modelFilePath = string.Empty;
+
+        var modelDownloader = new HttpModelDownloader(
+            this.FileStorageManager, modelIdentifier, ipAddress);
+
+        try
+        {
+            // Try and download that model from the remote HoloLens
+            modelFilePath = await modelDownloader.DownloadModelToLocalStorageAsync();
+        }
+        catch
+        {
+            // TODO: figure out sensible exceptions here.
+        }
+        return (modelFilePath);
+    }
     async void OnNewModelFromNetwork(object sender, NewModelOnNetworkEventArgs e)
     {
-        if (!this.Downloading)
+        var acceptDownload = await MessageDialogHelper.AskYesNoQuestionAsync(
+            "New Model Available",
+            "Someone on the network has opened a new model, do you want to access it?");
+
+        if (acceptDownload)
         {
-            var downloaded = await MessageDialogHelper.AskYesNoQuestionAsync(
-                "New Model Available",
-                "Someone on the network has opened a new model, do you want to access it?");
+            this.ClearExistingModel();
 
-            if (downloaded)
+            this.ShowBusy("Downloading model files...");
+
+            var modelFilePath = await this.DownloadModelToLocalStorageAsync(
+                e.ModelIdentifier, e.IPAddress);
+
+            if (!string.IsNullOrEmpty(modelFilePath))
             {
-                this.Downloading = true;
+                // Flag that the ID of this model came from over the network, we didn't
+                // open it ourselves.
+                this.ModelIdentifier.AssignExistingFromNetworkedShare(e.ModelIdentifier);
 
-                this.ClearExistingModel();
-
-                var modelDownloader = new HttpModelDownloader(
-                    this.FileStorageManager, e.ModelIdentifier, e.IPAddress);
-
-                this.CursorManager.Hide();
-
-                this.ProgressRingManager.Show("Downloading model files...");
-
-                try
-                {
-                    // Try and download that model from the remote HoloLens
-                    var modelFilePath = await modelDownloader.DownloadModelToLocalStorageAsync();
-
-                    downloaded = !string.IsNullOrEmpty(modelFilePath);
-
-                    if (downloaded)
-                    {
-                        // Flag that the ID of this model came from over the network, we didn't
-                        // open it ourselves.
-                        this.ModelIdentifier.AssignExistingFromNetworkedShare(e.ModelIdentifier);
-
-                        // Open the model from the file as we would if the user had selected
-                        // it via a dialog.
-                        this.OpenModelFileAsync(modelFilePath);
-                    }
-                }
-                catch
-                {
-                }
-                finally
-                {
-                    this.ProgressRingManager.Hide();
-                    this.CursorManager.Show();
-                    this.Downloading = false;
-                }
-                if (!downloaded)
-                {
-                    // TODO: Need to say something to the user here.
-                }
+                // Open the model from the file as we would if the user had selected
+                // it via a dialog.
+                await this.OpenModelFileAsync(modelFilePath);
+            }
+            else
+            {
+                // TODO: Failed to download the model, tell the user...
+                this.HideBusy();
             }
         }
     }
@@ -96,39 +119,61 @@ public class ModelController : ExtendedMonoBehaviour
         // Get rid of any identity associated with the model
         this.ModelIdentifier.Clear();
     }
-    void OpenModelFileAsync(string filePath)
+    async Task OpenModelFileAsync(string filePath)
     {
-        this.CursorManager.Hide();
+        this.ShowBusy("Loading model...");
 
-        this.ProgressRingManager.Show("Loading model...");
+        LoadedModelDetails modelDetails = null;
 
         // Load the model.
-        this.ModelLoader.OpenNewModelAsync(
-            filePath,
-            this.OnLoadedCallback);
-    }
-    public async void OnOpenSpeechCommand()
-    {
-        if (!this.Opening)
+        try
         {
-            this.Opening = true;
+            modelDetails = await this.ModelLoader.OpenNewModelAsync(filePath);
+        }
+        catch
+        {
+            // TODO: figure out sensible exceptions here.
+        }
+        this.HideBusy();
 
-            this.ClearExistingModel();
+        if (modelDetails?.GameObject != null)
+        {
+            this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
 
-            // Note - this method will throw inside of the editor, only does something
-            // on the UWP platform.
-            var filePath = await this.PickFileFrom3DObjectsFolderAsync();
+            // The new model should be on the gaze vector so the parent will have moved
+            // so we need to put its anchor back
+            this.AnchorManager.AddAnchorToModelParent();
 
-            if (!string.IsNullOrEmpty(filePath))
+            if (!this.ModelIdentifier.IsSharedFromNetwork)
             {
-                this.OpenModelFileAsync(filePath);
-            }
-            else
-            {
-                this.Opening = false;
+                // We have a new model so we can reset our notion of its identity
+                this.ModelIdentifier.CreateNew();
+
+                // We can write out all the files that were part of loading this model
+                // into a file in case they need sharing in future.
+                await this.FileStorageManager.StoreFileListAsync(modelDetails.FileLoader);
+
+                // And export the anchor into the file system as well.
+                var bits = await this.AnchorManager.ExportAnchorAsync();
+
+                if (bits != null)
+                {
+                    // Store that into the file system so that the web server can later
+                    // serve it up on request.
+                    await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
+
+                    // Message out to the network that we have a new model that they
+                    // can optionally grab if they want to.
+                    NetworkMessagingProvider.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
+                }
             }
         }
+        else
+        {
+            this.AudioManager?.PlayClip(AudioClipType.LoadError);
+        }
     }
+
     async Task<string> PickFileFrom3DObjectsFolderAsync()
     {
         var filePath = string.Empty;
@@ -152,56 +197,4 @@ public class ModelController : ExtendedMonoBehaviour
 
         return (filePath);
     }
-    async void OnLoadedCallback(GameObject loadedObject, RecordingFileLoader fileRecorder)
-    {
-        this.Opening = false;
-        this.ProgressRingManager.Hide();
-        this.CursorManager.Show();
-
-        if (loadedObject != null)
-        {
-            this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
-
-            // The new model should be on the gaze vector so the parent will have moved
-            // so we need to put its anchor back
-            this.AnchorManager.AddAnchorToModelParent();
-
-            if (!this.ModelIdentifier.IsSharedFromNetwork)
-            {
-                // We have a new model so we can reset our notion of its identity
-                this.ModelIdentifier.CreateNew();
-
-                // We can write out all the files that were part of loading this model
-                // into a file in case they need sharing in future.
-                await this.FileStorageManager.StoreFileListAsync(fileRecorder);
-
-                // And export the anchor into the file system as well.
-                var bits = await this.AnchorManager.ExportAnchorAsync();
-
-                if (bits != null)
-                {
-                    // Store that into the file system so that the web server can later
-                    // serve it up on request.
-                    await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
-
-                    // Message out to the network that we have a new model that they
-                    // can optionally grab if they want to.
-                    NetworkMessagingProvider.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
-                }
-            }
-        }
-        else
-        {
-            this.AudioManager?.PlayClip(AudioClipType.LoadError);
-        }
-    }
-    public void OnResetSpeechCommand()
-    {
-        if (this.ModelIdentifier.HasModel)
-        {
-            this.AudioManager.PlayClip(AudioClipType.Resetting);
-
-            this.ModelLoader.ReturnModelToLoadedPosition();
-        }
-    }   
 }

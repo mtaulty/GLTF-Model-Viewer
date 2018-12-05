@@ -72,23 +72,22 @@ public class ExtendedMonoBehaviour : MonoBehaviour
             }
             catch (Exception exception)
             {
-                currentValue = exception;
+                completed = true;
                 exceptions.Add(exception);
             }
-            if (currentValue is IEnumerator)
+            if (!completed)
             {
-                yield return this.RecurseCoRoutineWithExceptions(
-                    (IEnumerator)currentValue,
-                    exceptions 
-                );
-            }
-            else if (currentValue is Exception)
-            {
-                completed = true;
-            }
-            else if (currentValue != null)
-            {
-                yield return currentValue;
+                if (currentValue is IEnumerator)
+                {
+                    yield return this.RecurseCoRoutineWithExceptions(
+                        (IEnumerator)currentValue,
+                        exceptions
+                    );
+                }
+                else
+                {
+                    yield return currentValue;
+                }
             }
         }
     }
