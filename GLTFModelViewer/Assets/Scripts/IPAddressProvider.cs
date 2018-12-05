@@ -21,7 +21,9 @@ internal static class IPAddressProvider
                 initialised = true;
 
 #if ENABLE_WINMD_SUPPORT
-                var addresses = NetworkUtility.GetConnectedIpAddresses();
+                // NB: WIFI only seems fine here but won't help on the emulator hence
+                // passing false.
+                var addresses = NetworkUtility.GetConnectedIpAddresses(false);
 
                 if (addresses.Count > 0)
                 {

@@ -5,14 +5,27 @@ public class ProgressRingManager : MonoBehaviour
 {
     public void Show(string message)
     {
-        ProgressIndicator.Instance.Open(
-                IndicatorStyleEnum.AnimatedOrbs,
-                ProgressStyleEnum.None,
-                ProgressMessageStyleEnum.Visible,
-                "Loading...");
+        if (!this.isOpen)
+        {
+            this.isOpen = true;
+            ProgressIndicator.Instance.Open(
+                    IndicatorStyleEnum.AnimatedOrbs,
+                    ProgressStyleEnum.None,
+                    ProgressMessageStyleEnum.Visible,
+                    message);
+        }
+        else
+        {
+            ProgressIndicator.Instance.SetMessage(message);
+        }
     }
     public void Hide()
     {
-        ProgressIndicator.Instance.Close();
+        if (this.isOpen)
+        {
+            this.isOpen = false;
+            ProgressIndicator.Instance.Close();
+        }
     }
+    bool isOpen;
 }

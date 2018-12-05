@@ -21,58 +21,57 @@ public class NewModelOnNetworkEventArgs : EventArgs
     public Guid ModelIdentifier { get; private set; }
 }
 
-public class NetworkMessageManager : MonoBehaviour
+internal static class NetworkMessagingProvider 
 {
-    public event EventHandler<NewModelOnNetworkEventArgs> NewModelOnNetwork;
+    internal static event EventHandler<NewModelOnNetworkEventArgs> NewModelOnNetwork;
 
     // Note - this defines a dependency between this script and the IP Address Provider
     // being created before we arrive here.
-    void Start()
+    internal static void Initialise()
     {
 #if ENABLE_WINMD_SUPPORT
 
         if (IPAddressProvider.HasIpAddress)
         {
-            this.messageRegistrar = new MessageRegistrar();
+            messageRegistrar = new MessageRegistrar();
 
-            this.newModelMessageKey =
-                this.messageRegistrar.RegisterMessageFactory<NewModelMessage>(
+            newModelMessageKey =
+                messageRegistrar.RegisterMessageFactory<NewModelMessage>(
                     () => new NewModelMessage());
 
-            this.messageRegistrar.RegisterMessageHandler<NewModelMessage>(
-                this.OnNewModelOnNetwork);
+            messageRegistrar.RegisterMessageHandler<NewModelMessage>(
+                OnNewModelOnNetwork);
 
-            this.messageService = new MessageService(this.messageRegistrar,
-                IPAddressProvider.IPAddress.ToString());
+            messageService = new MessageService(messageRegistrar);
 
-            this.messageService.Open();
+            messageService.Open();
         }
 #endif // ENABLE_WINMD_SUPPORT
     }
-    public void SendNewModelMessage(Guid identifier)
+    internal static void SendNewModelMessage(Guid identifier)
     {
 #if ENABLE_WINMD_SUPPORT
         if (IPAddressProvider.HasIpAddress)
         {
-            var message = (NewModelMessage)this.messageRegistrar.CreateMessage(this.newModelMessageKey);
+            var message = (NewModelMessage)messageRegistrar.CreateMessage(newModelMessageKey);
             message.ServerIPAddress = IPAddressProvider.IPAddress;
             message.ModelIdentifier = identifier;
-            this.messageService.Send(message);
+            messageService.Send(message);
         }
 #endif // ENABLE_WINMD_SUPPORT
     }
 
 #if ENABLE_WINMD_SUPPORT
-    void OnNewModelOnNetwork(object obj)
+    static void OnNewModelOnNetwork(object obj)
     {
         NewModelMessage message = obj as NewModelMessage;
 
-        this.NewModelOnNetwork?.Invoke(
-            this, new NewModelOnNetworkEventArgs(message.ModelIdentifier, message.ServerIPAddress));
+        NewModelOnNetwork?.Invoke(
+            null, new NewModelOnNetworkEventArgs(message.ModelIdentifier, message.ServerIPAddress));
     }
 
-    MessageTypeKey newModelMessageKey;
-    MessageService messageService;
-    MessageRegistrar messageRegistrar;
+    static MessageTypeKey newModelMessageKey;
+    static MessageService messageService;
+    static MessageRegistrar messageRegistrar;
 #endif // ENABLE_WINMD_SUPPORT
 }

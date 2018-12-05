@@ -18,13 +18,19 @@ public class FileStorageManager : MonoBehaviour
     static readonly string FILE_LIST_FILE_EXTENSION = ".fil";
     static readonly string FILE_ANCHOR_FILE_EXTENSION = ".anc";
 
-    public string WorldAnchorFileName =>
+    string WorldAnchorFileName =>
         $"{this.ModelIdentifier.Identifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
-    public string FileListFileName =>
+    string FileListFileName =>
         $"{this.ModelIdentifier.Identifier}{FILE_LIST_FILE_EXTENSION}";
 
-    public string AppSubFolderName => SUBFOLDER_PATH;
+    string AppSubFolderName => SUBFOLDER_PATH;
+
+    public string GetFileListRelativeUri(Guid modelIdentifier)
+        => $"{this.AppSubFolderName}/{modelIdentifier}{FILE_LIST_FILE_EXTENSION}";
+
+    public string GetAnchorFileRelativeUri(Guid modelIdentifier) => 
+        $"{this.AppSubFolderName}/{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
     public async Task StoreFileListAsync(RecordingFileLoader fileRecorder)
     {
@@ -67,5 +73,23 @@ public class FileStorageManager : MonoBehaviour
 
         return (storageFile);
     }    
+    public async Task<StorageFile> GetStorageFileForRelativeUriAsync(string relativeUri)
+    {
+        var topFolder = KnownFolders.Objects3D;
+
+        var pathPieces =
+            relativeUri.Split('/').Select(p => p.Trim()).Where(p => !string.IsNullOrEmpty(p)).ToArray();
+
+        // We have folders
+        for (int i = 0; i < pathPieces.Length - 1; i++)
+        {
+            topFolder = 
+                await topFolder.CreateFolderAsync(pathPieces[i], CreationCollisionOption.OpenIfExists);
+        }
+        var file = await topFolder.CreateFileAsync(pathPieces[pathPieces.Length - 1],
+            CreationCollisionOption.OpenIfExists);
+
+        return (file);
+    }
 #endif // ENABLE_WINMD_SUPPORT
 }

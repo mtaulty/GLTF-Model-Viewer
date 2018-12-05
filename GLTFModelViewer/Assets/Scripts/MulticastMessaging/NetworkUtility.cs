@@ -21,10 +21,11 @@ namespace MulticastMessaging
         // System.dll on .NET 3.51 and in System.Net.Primitives in UWP.
         // I suspect that I'll see some other, similar problems.
         public static List<string> GetConnectedIpAddresses(
-            bool wifiOnly = true,
-            bool excludeVirtualNames = true,
+            bool wifiOnly,
             AddressFamilyType addressFamily = AddressFamilyType.IP4)
         {
+            var profiles = NetworkInformation.GetConnectionProfiles();
+
             var connectedAdapterIds = NetworkInformation.GetConnectionProfiles()
                 .Where(
                     p => (p.GetNetworkConnectivityLevel() != NetworkConnectivityLevel.None) &&

@@ -17,7 +17,6 @@ namespace MulticastMessaging
         // on Windows 10.
         public MessageService(
             MessageRegistrar messageRegistrar,
-            string localNetworkAddress,
             string multicastAddress = "239.0.0.0",
             int multicastPort = 49152)
         {
@@ -26,7 +25,6 @@ namespace MulticastMessaging
             //    throw new ArgumentNullException("MessageRegistrar is null");
             //}
             this.messageRegistrar = messageRegistrar;
-            this.localNetworkAddress = IPAddress.Parse(localNetworkAddress);
             this.multicastEndpoint = new IPEndPoint(IPAddress.Parse(multicastAddress), multicastPort);
         }
         public MessageRegistrar Registrar
@@ -40,13 +38,11 @@ namespace MulticastMessaging
         {
             this.CheckOpen(false);
 
-            this.udpClient = new UdpClient(
-                new IPEndPoint(this.localNetworkAddress, this.multicastEndpoint.Port));
+            this.udpClient = new UdpClient(this.multicastEndpoint.Port);
 
             this.udpClient.MulticastLoopback = false;
 
-            this.udpClient.JoinMulticastGroup(this.multicastEndpoint.Address,
-                this.localNetworkAddress);
+            this.udpClient.JoinMulticastGroup(this.multicastEndpoint.Address);
 
             this.ReceiveInternal();
         }
@@ -169,7 +165,6 @@ namespace MulticastMessaging
         UdpClient udpClient;
         MessageRegistrar messageRegistrar;
         IPEndPoint multicastEndpoint;
-        IPAddress localNetworkAddress;
     }
 }
 #endif // ENABLE_WINMD_SUPPORT

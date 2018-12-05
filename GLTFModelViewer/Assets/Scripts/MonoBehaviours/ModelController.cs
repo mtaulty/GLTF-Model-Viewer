@@ -9,7 +9,9 @@ using Windows.Storage;
 
 public class ModelController : ExtendedMonoBehaviour
 {
+    // These flags will need replacing with a proper state enum at some point.
     bool Opening { get; set; }
+    bool Downloading { get; set; }
 
     ModelLoader ModelLoader => this.gameObject.GetComponent<ModelLoader>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
@@ -18,13 +20,92 @@ public class ModelController : ExtendedMonoBehaviour
     FileStorageManager FileStorageManager => this.gameObject.GetComponent<FileStorageManager>();
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
     AnchorManager AnchorManager => this.gameObject.GetComponent<AnchorManager>();
-    NetworkMessageManager NetworkManager => this.gameObject.GetComponent<NetworkMessageManager>();
 
-    void OnNewModelFromNetwork(object sender, NewModelOnNetworkEventArgs e)
+    void Start()
     {
-        // Someone has multicasted that there is a new model on the network
-        // that we can now download to our local storage and potentially
-        // open up.
+        // This does nothing if we have no IP address connected to a network
+        NetworkMessagingProvider.NewModelOnNetwork += this.OnNewModelFromNetwork;
+        NetworkMessagingProvider.Initialise();
+    }
+    async void OnNewModelFromNetwork(object sender, NewModelOnNetworkEventArgs e)
+    {
+        if (!this.Downloading)
+        {
+            var downloaded = await MessageDialogHelper.AskYesNoQuestionAsync(
+                "New Model Available",
+                "Someone on the network has opened a new model, do you want to access it?");
+
+            if (downloaded)
+            {
+                this.Downloading = true;
+
+                this.ClearExistingModel();
+
+                var modelDownloader = new HttpModelDownloader(
+                    this.FileStorageManager, e.ModelIdentifier, e.IPAddress);
+
+                this.CursorManager.Hide();
+
+                this.ProgressRingManager.Show("Downloading model files...");
+
+                try
+                {
+                    // Try and download that model from the remote HoloLens
+                    var modelFilePath = await modelDownloader.DownloadModelToLocalStorageAsync();
+
+                    downloaded = !string.IsNullOrEmpty(modelFilePath);
+
+                    if (downloaded)
+                    {
+                        // Flag that the ID of this model came from over the network, we didn't
+                        // open it ourselves.
+                        this.ModelIdentifier.AssignExistingFromNetworkedShare(e.ModelIdentifier);
+
+                        // Open the model from the file as we would if the user had selected
+                        // it via a dialog.
+                        this.OpenModelFileAsync(modelFilePath);
+                    }
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    this.ProgressRingManager.Hide();
+                    this.CursorManager.Show();
+                    this.Downloading = false;
+                }
+                if (!downloaded)
+                {
+                    // TODO: Need to say something to the user here.
+                }
+            }
+        }
+    }
+    void ClearExistingModel()
+    {
+        // Get rid of the previous model regardless of whether the user chooses
+        // a new one or not with a review to avoiding cluttering the screen.
+        this.ModelLoader.DisposeExistingGLTFModel();
+
+        // Get rid of any spatial anchor on the parent so that we can re-add
+        // it if necessary when the new model has loaded and the parent has
+        // been moved to match the user's gaze.
+        this.AnchorManager.RemoveAnchorFromModelParent();
+
+        // Get rid of any identity associated with the model
+        this.ModelIdentifier.Clear();
+    }
+    void OpenModelFileAsync(string filePath)
+    {
+        this.CursorManager.Hide();
+
+        this.ProgressRingManager.Show("Loading model...");
+
+        // Load the model.
+        this.ModelLoader.OpenNewModelAsync(
+            filePath,
+            this.OnLoadedCallback);
     }
     public async void OnOpenSpeechCommand()
     {
@@ -32,17 +113,7 @@ public class ModelController : ExtendedMonoBehaviour
         {
             this.Opening = true;
 
-            // Get rid of the previous model regardless of whether the user chooses
-            // a new one or not with a review to avoiding cluttering the screen.
-            this.ModelLoader.DisposeExistingGLTFModel();
-
-            // Get rid of any spatial anchor on the parent so that we can re-add
-            // it if necessary when the new model has loaded and the parent has
-            // been moved to match the user's gaze.
-            this.AnchorManager.RemoveAnchorFromModelParent();
-
-            // Get rid of any identity associated with the model
-            this.ModelIdentifier.Clear();
+            this.ClearExistingModel();
 
             // Note - this method will throw inside of the editor, only does something
             // on the UWP platform.
@@ -50,13 +121,7 @@ public class ModelController : ExtendedMonoBehaviour
 
             if (!string.IsNullOrEmpty(filePath))
             {
-                this.CursorManager.Hide();
-                this.ProgressRingManager.Show("Loading...");
-
-                // Load the model.
-                this.ModelLoader.OpenNewModelAsync(
-                    filePath,
-                    this.OnLoadedCallback);
+                this.OpenModelFileAsync(filePath);
             }
             else
             {
@@ -70,11 +135,6 @@ public class ModelController : ExtendedMonoBehaviour
 
 #if ENABLE_WINMD_SUPPORT
         var known3DObjectsFolder = KnownFolders.Objects3D.Path.ToLower().TrimEnd('\\');
-#else
-        var known3DObjectsFolder = string.Empty;
-
-        throw new NotImplementedException("Sorry, only on UWP");
-#endif // ENABLE_WINMD_SUPPORT
 
         do
         {
@@ -87,6 +147,8 @@ public class ModelController : ExtendedMonoBehaviour
                 this.AudioManager.PlayClipOnceOnly(AudioClipType.PickFileFrom3DObjectsFolder);
             }
         } while (filePath == string.Empty);
+
+#endif // ENABLE_WINMD_SUPPORT
 
         return (filePath);
     }
@@ -104,25 +166,28 @@ public class ModelController : ExtendedMonoBehaviour
             // so we need to put its anchor back
             this.AnchorManager.AddAnchorToModelParent();
 
-            // We have a new model so we can reset our notion of its identity
-            this.ModelIdentifier.CreateNew();
-
-            // We can write out all the files that were part of loading this model
-            // into a file in case they need sharing in future.
-            await this.FileStorageManager.StoreFileListAsync(fileRecorder);
-
-            // And export the anchor into the file system as well.
-            var bits = await this.AnchorManager.ExportAnchorAsync();
-
-            if (bits != null)
+            if (!this.ModelIdentifier.IsSharedFromNetwork)
             {
-                // Store that into the file system so that the web server can later
-                // serve it up on request.
-                await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
+                // We have a new model so we can reset our notion of its identity
+                this.ModelIdentifier.CreateNew();
 
-                // Message out to the network that we have a new model that they
-                // can optionally grab if they want to.
-                this.NetworkManager.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
+                // We can write out all the files that were part of loading this model
+                // into a file in case they need sharing in future.
+                await this.FileStorageManager.StoreFileListAsync(fileRecorder);
+
+                // And export the anchor into the file system as well.
+                var bits = await this.AnchorManager.ExportAnchorAsync();
+
+                if (bits != null)
+                {
+                    // Store that into the file system so that the web server can later
+                    // serve it up on request.
+                    await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
+
+                    // Message out to the network that we have a new model that they
+                    // can optionally grab if they want to.
+                    NetworkMessagingProvider.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
+                }
             }
         }
         else
