@@ -25,6 +25,14 @@ public class AnchorManager : MonoBehaviour
         // Anchor the parent.
         this.ParentProvider.GLTFModelParent.AddComponent<WorldAnchor>();
     }
+    public async Task<bool> ImportAnchorToModelParent(byte[] worldAnchorBits)
+    {
+        var result = await ImportWorldAnchorToGameObjectAsync(
+            this.ParentProvider.GLTFModelParent,
+            worldAnchorBits);
+
+        return (result);
+    }
     public async Task<byte[]> ExportAnchorAsync()
     {
         // Before we can export the anchor, we probably need to wait for it to
@@ -39,18 +47,6 @@ public class AnchorManager : MonoBehaviour
         byte[] bits = await ExportWorldAnchorForGameObjectAsync(this.ParentProvider.GLTFModelParent);
 
         return (bits);
-    }
-    public static async void ImportWorldAnchorToGameObject(
-        GameObject gameObject,
-        byte[] worldAnchorBits,
-        Action<bool> callback)
-    {
-        var worked = await ImportWorldAnchorToGameObjectAsync(gameObject, worldAnchorBits);
-
-        if (callback != null)
-        {
-            callback(worked);
-        }
     }
     static async Task<bool> ImportWorldAnchorToGameObjectAsync(
         GameObject gameObject,

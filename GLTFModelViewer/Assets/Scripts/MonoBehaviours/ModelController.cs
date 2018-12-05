@@ -32,7 +32,35 @@ public class ModelController : ExtendedMonoBehaviour
 
         if (!string.IsNullOrEmpty(filePath))
         {
-            await this.OpenModelFileAsync(filePath);
+            var modelDetails = await this.OpenModelFileAsync(filePath);
+
+            if (modelDetails != null)
+            {
+                // The new model should be on the gaze vector so the parent will have moved
+                // so we need to put its anchor back
+                this.AnchorManager.AddAnchorToModelParent();
+
+                // We have a new model so we can reset our notion of its identity
+                this.ModelIdentifier.CreateNew();
+
+                // We can write out all the files that were part of loading this model
+                // into a file in case they need sharing in future.
+                await this.FileStorageManager.StoreFileListAsync(modelDetails.FileLoader);
+
+                // And export the anchor into the file system as well.
+                var exportedAnchorBits = await this.AnchorManager.ExportAnchorAsync();
+
+                if (exportedAnchorBits != null)
+                {
+                    // Store that into the file system so that the web server can later
+                    // serve it up on request.
+                    await this.FileStorageManager.StoreExportedWorldAnchorAsync(exportedAnchorBits);
+
+                    // Message out to the network that we have a new model that they
+                    // can optionally grab if they want to.
+                    NetworkMessagingProvider.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
+                }
+            }
         }
     }
     public void OnResetSpeechCommand()
@@ -97,6 +125,18 @@ public class ModelController : ExtendedMonoBehaviour
                 // Open the model from the file as we would if the user had selected
                 // it via a dialog.
                 await this.OpenModelFileAsync(modelFilePath);
+
+                // With this model coming from the network, we want to import
+                // the anchor onto the parent to put it into the same place within
+                // the space as on the device it originated from.
+                var worldAnchorBits = 
+                    await this.FileStorageManager.LoadExportedWorldAnchorAsync();
+
+                if (worldAnchorBits != null)
+                {
+                    // TODO: if this fails then?...
+                    await this.AnchorManager.ImportAnchorToModelParent(worldAnchorBits);
+                }
             }
             else
             {
@@ -119,11 +159,11 @@ public class ModelController : ExtendedMonoBehaviour
         // Get rid of any identity associated with the model
         this.ModelIdentifier.Clear();
     }
-    async Task OpenModelFileAsync(string filePath)
+    async Task<LoadedModelInfo> OpenModelFileAsync(string filePath)
     {
         this.ShowBusy("Loading model...");
 
-        LoadedModelDetails modelDetails = null;
+        LoadedModelInfo modelDetails = null;
 
         // Load the model.
         try
@@ -139,39 +179,12 @@ public class ModelController : ExtendedMonoBehaviour
         if (modelDetails?.GameObject != null)
         {
             this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
-
-            // The new model should be on the gaze vector so the parent will have moved
-            // so we need to put its anchor back
-            this.AnchorManager.AddAnchorToModelParent();
-
-            if (!this.ModelIdentifier.IsSharedFromNetwork)
-            {
-                // We have a new model so we can reset our notion of its identity
-                this.ModelIdentifier.CreateNew();
-
-                // We can write out all the files that were part of loading this model
-                // into a file in case they need sharing in future.
-                await this.FileStorageManager.StoreFileListAsync(modelDetails.FileLoader);
-
-                // And export the anchor into the file system as well.
-                var bits = await this.AnchorManager.ExportAnchorAsync();
-
-                if (bits != null)
-                {
-                    // Store that into the file system so that the web server can later
-                    // serve it up on request.
-                    await this.FileStorageManager.StoreExportedWorldAnchorAsync(bits);
-
-                    // Message out to the network that we have a new model that they
-                    // can optionally grab if they want to.
-                    NetworkMessagingProvider.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
-                }
-            }
         }
         else
         {
             this.AudioManager?.PlayClip(AudioClipType.LoadError);
         }
+        return (modelDetails);
     }
 
     async Task<string> PickFileFrom3DObjectsFolderAsync()

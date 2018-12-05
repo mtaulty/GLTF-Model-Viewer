@@ -9,16 +9,6 @@ using UnityEngine;
 using UnityEngine.XR.WSA;
 using UnityGLTF;
 
-public class LoadedModelDetails
-{
-    public LoadedModelDetails(RecordingFileLoader fileLoader)
-    {
-        this.FileLoader = fileLoader;
-    }
-    public GameObject GameObject { get; set; }
-    public RecordingFileLoader FileLoader { get; private set; }
-}
-
 public class ModelLoader : ExtendedMonoBehaviour
 {
     [SerializeField]
@@ -30,9 +20,9 @@ public class ModelLoader : ExtendedMonoBehaviour
 
     ParentProvider ParentProvider => this.gameObject.GetComponent<ParentProvider>();
 
-    public async Task<LoadedModelDetails> OpenNewModelAsync(string filePath)
+    public async Task<LoadedModelInfo> OpenNewModelAsync(string filePath)
     {
-        var modelDetails = new LoadedModelDetails(
+        var modelDetails = new LoadedModelInfo(
             new RecordingFileLoader(Path.GetDirectoryName(filePath)));
 
         GLTFSceneImporter importer = new GLTFSceneImporter(Path.GetFileName(filePath), modelDetails.FileLoader);

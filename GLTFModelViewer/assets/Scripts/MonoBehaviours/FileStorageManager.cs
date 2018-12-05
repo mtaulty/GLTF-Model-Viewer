@@ -8,6 +8,7 @@ using UnityEngine;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
+using System.Runtime.InteropServices.WindowsRuntime;
 #endif // ENABLE_WINMD_SUPPORT
 
 public class FileStorageManager : MonoBehaviour
@@ -60,6 +61,22 @@ public class FileStorageManager : MonoBehaviour
 
 #endif // ENABLE_WINMD_SUPPORT
     }    
+    public async Task<byte[]> LoadExportedWorldAnchorAsync()
+    {
+        byte[] bits = null;
+
+#if ENABLE_WINMD_SUPPORT
+        
+        var anchorFile = await KnownFolders.Objects3D.GetFileAsync(this.WorldAnchorFileName);
+
+        var buffer = await FileIO.ReadBufferAsync(anchorFile);
+
+        bits = buffer?.ToArray();
+
+#endif // ENABLE_WINMD_SUPPORT
+
+        return (bits);
+    }
 #if ENABLE_WINMD_SUPPORT
     async Task<StorageFile> CreateSubFolderFileAsync(string fileName)
     {
