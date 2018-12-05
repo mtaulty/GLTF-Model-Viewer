@@ -46,7 +46,7 @@ public class FileStorageManager : MonoBehaviour
         var relativePaths = fileRecorder.RelativeLoadedFilePaths.Select(
             path => Path.Combine("\\", relativePath, path).Replace('\\', '/'));
 
-        var file = await CreateSubFolderFileAsync(this.FileListFileName);
+        var file = await GetSubFolderFileAsync(this.FileListFileName, true);
 
         await FileIO.WriteLinesAsync(file, relativePaths);
 
@@ -55,7 +55,7 @@ public class FileStorageManager : MonoBehaviour
     public async Task StoreExportedWorldAnchorAsync(byte[] worldAnchorBits)
     {
 #if ENABLE_WINMD_SUPPORT
-        var file = await CreateSubFolderFileAsync(this.WorldAnchorFileName);
+        var file = await GetSubFolderFileAsync(this.WorldAnchorFileName, true);
 
         await FileIO.WriteBytesAsync(file, worldAnchorBits);
 
@@ -66,8 +66,8 @@ public class FileStorageManager : MonoBehaviour
         byte[] bits = null;
 
 #if ENABLE_WINMD_SUPPORT
-        
-        var anchorFile = await KnownFolders.Objects3D.GetFileAsync(this.WorldAnchorFileName);
+
+        var anchorFile = await this.GetSubFolderFileAsync(this.WorldAnchorFileName, false);
 
         var buffer = await FileIO.ReadBufferAsync(anchorFile);
 
@@ -78,15 +78,17 @@ public class FileStorageManager : MonoBehaviour
         return (bits);
     }
 #if ENABLE_WINMD_SUPPORT
-    async Task<StorageFile> CreateSubFolderFileAsync(string fileName)
+    async Task<StorageFile> GetSubFolderFileAsync(string fileName, bool shouldCreateFile)
     {
         var parentFolder = KnownFolders.Objects3D;
 
         var subFolder = await parentFolder.CreateFolderAsync(
             this.AppSubFolderName, CreationCollisionOption.OpenIfExists);
 
-        var storageFile = await subFolder.CreateFileAsync(
-            fileName, CreationCollisionOption.ReplaceExisting);
+        var openFlags = 
+            shouldCreateFile ? CreationCollisionOption.ReplaceExisting : CreationCollisionOption.OpenIfExists;
+
+        var storageFile = await subFolder.CreateFileAsync(fileName, openFlags);
 
         return (storageFile);
     }    
