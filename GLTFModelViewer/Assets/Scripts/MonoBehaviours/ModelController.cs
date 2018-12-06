@@ -17,6 +17,7 @@ public class ModelController : ExtendedMonoBehaviour
     FileStorageManager FileStorageManager => this.gameObject.GetComponent<FileStorageManager>();
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
     AnchorManager AnchorManager => this.gameObject.GetComponent<AnchorManager>();
+    ManipulationsManager ManipulationsManager => this.gameObject.GetComponent<ManipulationsManager>();
 
     void Start()
     {
@@ -43,11 +44,17 @@ public class ModelController : ExtendedMonoBehaviour
                 // We have a new model so we can reset our notion of its identity
                 this.ModelIdentifier.CreateNew();
 
+                // Make it so that this model can be manipulated with gestures.
+                this.ManipulationsManager.AddHandManipulationsToModel();
+
                 // We can write out all the files that were part of loading this model
                 // into a file in case they need sharing in future.
                 await this.FileStorageManager.StoreFileListAsync(modelDetails.FileLoader);
 
                 // And export the anchor into the file system as well.
+                // TODO: this will currently wait "for ever" for the world anchor to be
+                // located which might be wildly optimistic, we should probably add some
+                // notion of a timeout on that here too.
                 var exportedAnchorBits = await this.AnchorManager.ExportAnchorAsync();
 
                 if (exportedAnchorBits != null)
@@ -147,6 +154,9 @@ public class ModelController : ExtendedMonoBehaviour
     }
     void ClearExistingModel()
     {
+        // Get rid of any manipulations on the model.
+        this.ManipulationsManager.RemoveManipulationsFromModel();
+
         // Get rid of the previous model regardless of whether the user chooses
         // a new one or not with a review to avoiding cluttering the screen.
         this.ModelLoader.DisposeExistingGLTFModel();

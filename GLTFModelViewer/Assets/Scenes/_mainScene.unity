@@ -215,6 +215,7 @@ GameObject:
   - component: {fileID: 425312700}
   - component: {fileID: 425312710}
   - component: {fileID: 425312697}
+  - component: {fileID: 425312709}
   - component: {fileID: 425312708}
   m_Layer: 0
   m_Name: ContentParent
@@ -432,8 +433,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60d6ffd0d17b76547ad05d4b3dd9c48c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boundingBoxPrefab: {fileID: 114030465538688920, guid: 865a8ded6c47efd4285f04f3aebe99e9,
-    type: 2}
 --- !u!114 &425312702
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -524,10 +523,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 425312694}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4557278422acd1c459e7f51cf99eda61, type: 3}
+  m_Script: {fileID: 11500000, guid: 6d486b7f70bb72f40a7d03f99b05370a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dialogPrefab: {fileID: 114617495383521140, guid: 675f0fa1333683640974b1e6c078079e,
+--- !u!114 &425312709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 425312694}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59d88644e28686a46821dd1a138ff82f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boundingBoxPrefab: {fileID: 114030465538688920, guid: 865a8ded6c47efd4285f04f3aebe99e9,
     type: 2}
 --- !u!114 &425312710
 MonoBehaviour:

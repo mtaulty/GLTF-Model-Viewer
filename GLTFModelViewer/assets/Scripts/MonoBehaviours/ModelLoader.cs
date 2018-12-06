@@ -11,14 +11,12 @@ using UnityGLTF;
 
 public class ModelLoader : ExtendedMonoBehaviour
 {
-    [SerializeField]
-    BoundingBox boundingBoxPrefab;
-
     Vector3? initialScaleFactor;
 
     Transform initialLookPoint;
 
     ParentProvider ParentProvider => this.gameObject.GetComponent<ParentProvider>();
+    CurrentModelProvider CurrentModelProvider => this.gameObject.GetComponent<CurrentModelProvider>();
 
     public async Task<LoadedModelInfo> OpenNewModelAsync(string filePath)
     {
@@ -43,22 +41,21 @@ public class ModelLoader : ExtendedMonoBehaviour
     }
     public void DisposeExistingGLTFModel()
     {
-        if (this.CurrentModel != null)
+        if (this.CurrentModelProvider.HasModel)
         {
-            Destroy(this.CurrentModel.GetComponent<TwoHandManipulatable>());
-            Destroy(this.CurrentModel);
+            Destroy(this.CurrentModelProvider.CurrentModel);
             this.initialScaleFactor = null;
             this.initialLookPoint = null;
         }
     }
     public void ReturnModelToLoadedPosition()
     {
-        if (this.CurrentModel != null)
+        if (this.CurrentModelProvider.HasModel)
         {
-            this.CurrentModel.transform.localPosition = Vector3.zero;
-            this.CurrentModel.transform.localRotation = Quaternion.identity;
-            this.CurrentModel.transform.localScale = (Vector3)this.initialScaleFactor;
-            this.CurrentModel.transform.LookAt(this.initialLookPoint);
+            this.CurrentModelProvider.CurrentModel.transform.localPosition = Vector3.zero;
+            this.CurrentModelProvider.CurrentModel.transform.localRotation = Quaternion.identity;
+            this.CurrentModelProvider.CurrentModel.transform.localScale = (Vector3)this.initialScaleFactor;
+            this.CurrentModelProvider.CurrentModel.transform.LookAt(this.initialLookPoint);
         }
     }
     void AddNewGLTFModel(GameObject loadedModel)
@@ -75,9 +72,6 @@ public class ModelLoader : ExtendedMonoBehaviour
         // Point the model towards the camera.
         this.initialLookPoint = Camera.main.transform;
         loadedModel.transform.LookAt(this.initialLookPoint);
-
-        // Add the behaviours which let the user size, scale, rotate the model.
-        this.AddManipulationsToModel(loadedModel);
     }
     void ParentAndPositionModel(GameObject loadedModel)
     {
@@ -85,7 +79,6 @@ public class ModelLoader : ExtendedMonoBehaviour
         loadedModel.transform.SetParent(this.ParentProvider.GLTFModelParent.transform, false);
         loadedModel.transform.localPosition = Vector3.zero;
     }
-
     void InitialSizeModel(GameObject loadedModel)
     {
         // Try to figure out how big the object is (this turns out to be
@@ -134,15 +127,6 @@ public class ModelLoader : ExtendedMonoBehaviour
         }
         return result;
     }
-
-    void AddManipulationsToModel(GameObject loadedModel)
-    {
-        // Now need to add behaviours for rotate, transform, scale, etc.
-        var twoHandManips = loadedModel.gameObject.AddComponent<TwoHandManipulatable>();
-        twoHandManips.BoundingBoxPrefab = this.boundingBoxPrefab;
-        twoHandManips.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
-        twoHandManips.RotationConstraint = AxisConstraint.None;
-    }
     void PositionParentForModel()
     {
         // Move the parent to be approx 3m down the user's gaze.
@@ -156,18 +140,6 @@ public class ModelLoader : ExtendedMonoBehaviour
         // Move the parent to this new position. From there, the parent doesn't
         // get moved, scaled, rotated, only the model (child) will.
         this.ParentProvider.GLTFModelParent.transform.localPosition = parentPosition;
-    }
-    GameObject CurrentModel
-    {
-        get
-        {
-            GameObject currentModel = null;
-            if (this.ParentProvider.GLTFModelParent.transform.childCount > 0)
-            {
-                currentModel = this.ParentProvider.GLTFModelParent.transform.GetChild(0).gameObject;
-            }
-            return (currentModel);
-        }
     }
     static readonly float MODEL_START_SIZE = 0.5f;
     static readonly float MODEL_START_DISTANCE = 3.0f;
