@@ -13,7 +13,8 @@ public enum AudioClipType
     LoadError,
     WelcomeBack,
     FirstModelOpened,
-    PickFileFrom3DObjectsFolder
+    PickFileFrom3DObjectsFolder,
+    ErrorDownloadingModel
 }
 [Serializable]
 public class AudioClipEntry

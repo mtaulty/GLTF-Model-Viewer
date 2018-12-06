@@ -43,7 +43,6 @@ public class AnchorManager : MonoBehaviour
 
         // We now think that the anchor is located so we can try to export it
         // into a file.
-        // TODO: has to be a whole range of failures/errors here for us to think about...
         byte[] bits = await ExportWorldAnchorForGameObjectAsync(this.ParentProvider.GLTFModelParent);
 
         return (bits);

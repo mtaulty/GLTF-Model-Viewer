@@ -504,6 +504,8 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 3500ded6447764b428b1c0ce54a82ace, type: 3}
   - clipType: 5
     clip: {fileID: 8300000, guid: 2aeb73cce31302b418449a027d8eaf05, type: 3}
+  - clipType: 6
+    clip: {fileID: 8300000, guid: ff99b9089ab6f5141aadc9e6f79581cd, type: 3}
 --- !u!114 &425312707
 MonoBehaviour:
   m_ObjectHideFlags: 0

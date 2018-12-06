@@ -147,7 +147,7 @@ public class ModelController : ExtendedMonoBehaviour
             }
             else
             {
-                // TODO: Failed to download the model, tell the user...
+                this.AudioManager.PlayClip(AudioClipType.ErrorDownloadingModel);
                 this.HideBusy();
             }
         }

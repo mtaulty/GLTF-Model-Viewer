@@ -65,11 +65,10 @@ public class ManipulationsManager : MonoBehaviour
         {
             var transform = this.CurrentModelProvider.CurrentModel.transform;
             
-            // TODO: finalise tolerance values and put them into constants.
             if (!this.currentRotation.HasValue || 
-                !this.currentRotation.Value.EqualToTolerance(transform.localRotation, 0.5d) ||
-                !this.currentTranslation.Value.EqualToTolerance(transform.localPosition, 0.01d) ||
-                !this.currentScale.Value.EqualToTolerance(transform.localScale, 0.05d))
+                !this.currentRotation.Value.EqualToTolerance(transform.localRotation, ROTATION_TOLERANCE) ||
+                !this.currentTranslation.Value.EqualToTolerance(transform.localPosition, POSITION_TOLERANCE) ||
+                !this.currentScale.Value.EqualToTolerance(transform.localScale, SCALE_TOLERANCE))
             {
                 // We need to broadcast.
                 Debug.Log("We have a change in transform to talk about");
@@ -89,4 +88,8 @@ public class ManipulationsManager : MonoBehaviour
     Vector3? currentTranslation;
     Vector3? currentScale;
     bool isMulticastingTransforms;
+
+    static readonly double ROTATION_TOLERANCE = 0.5d;
+    static readonly double POSITION_TOLERANCE = 0.01d;
+    static readonly double SCALE_TOLERANCE = 0.05d;
 }
