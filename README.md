@@ -39,4 +39,4 @@ Note, at the end of the script it's highly likely that DLL metadata isn't quite 
 	Assets\UnityGLTF\Plugins\UWP\GLTFSerializationUWP.dll - should be marked for only the UWP platform & SDK.
 	Assets\UnityGLTF\Plugins\UWP\GLTFSeriazliation.dll - should be marked for the editor only.
 
-Note also that at the end of the Unity->Visual Studio->Make Appx Packages step it's possible that you have to rename two or three .png files to make the appx packager happy as, at the time of writing, I haven't quite figured how to get Unity to do what I want there.
+Note also that at the end of the Unity->Visual Studio->Make Appx Packages step it's possible that you have to rename two or three .png files to make the appx packager happy as, at the time of writing, I haven't quite figured how to get Unity to do what I want there but it largely involves removing the word 'logo' from 3-4 .png files that come out of Unity.
