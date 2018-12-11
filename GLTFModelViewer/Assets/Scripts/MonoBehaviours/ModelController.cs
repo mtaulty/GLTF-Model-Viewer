@@ -6,6 +6,7 @@ using UnityEngine;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
+using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
 public class ModelController : ExtendedMonoBehaviour
@@ -19,12 +20,89 @@ public class ModelController : ExtendedMonoBehaviour
     AnchorManager AnchorManager => this.gameObject.GetComponent<AnchorManager>();
     ManipulationsManager ManipulationsManager => this.gameObject.GetComponent<ManipulationsManager>();
 
+    static readonly string OPEN_SPEECH_TEXT = "open";
+    static readonly string RESET_SPEECH_TEXT = "reset";
+
+#if ENABLE_WINMD_SUPPORT
+    SpeechRecognizer recognizer;
+#endif // ENABLE_WINMD_SUPPORT
+
     void Start()
     {
         // This does nothing if we have no IP address connected to a network
         NetworkMessagingProvider.NewModelOnNetwork += this.OnNewModelFromNetwork;
         NetworkMessagingProvider.Initialise();
+
+#if ENABLE_WINMD_SUPPORT
+        this.StartSpeechCommandHandlingAsync();
+#endif // ENABLE_WINMD_SUPPORT
     }
+#if ENABLE_WINMD_SUPPORT    
+    /// <summary>
+    /// Why am I using my own speech handling rather than relying on SpeechInputSource and
+    /// SpeechInputHandler? I started using those and they worked fine.
+    /// However, I found that my speech commands would stop working across invocations of
+    /// the file open dialog. They would work *before* and *stop* after.
+    /// I spent a lot of time on this and I found that things would *work* under the debugger
+    /// but not without it.
+    /// That led me to think that this related to suspend/resume and perhaps HoloLens suspends
+    /// the app when you move to the file dialog because I notice that dialog running as its
+    /// own app on HoloLens.
+    /// I tried hard to do work with suspend/resume but I kept hitting problems and so I wrote
+    /// my own code where I try quite hard to avoid a single instance of SpeechRecognizer being
+    /// used more than once - i.e. I create it, recognise with it & throw it away each time
+    /// as this seems to *actually work* better than any other approach I tried.
+    /// I also find that SpeechRecognizer.RecognizeAsync can get into a situation where it
+    /// returns "Success" and "Rejected" at the same time & once that happens you don't get
+    /// any more recognition unless you throw it away and so that's behind my approach.
+    /// </summary>
+    async void StartSpeechCommandHandlingAsync()
+    {
+        while (true)
+        {
+            var command = await this.SelectSpeechCommandAsync(
+                OPEN_SPEECH_TEXT, RESET_SPEECH_TEXT);
+
+            if (string.Compare(OPEN_SPEECH_TEXT, command, true) == 0)
+            {
+                this.OnOpenSpeechCommand();
+            }
+            else if (string.Compare(RESET_SPEECH_TEXT, command, true) == 0)
+            {
+                this.OnResetSpeechCommand();
+            }
+            else
+            {
+                // Just being paranoid in case we start spinning around here
+                // My expectatation is that this code should never/rarely
+                // execute.
+                await Task.Delay(250);
+            }
+        }
+    }
+    async Task<string> SelectSpeechCommandAsync(params string[] commands)
+    {
+        string command = string.Empty;
+
+        using (var recognizer = new SpeechRecognizer())
+        {
+            recognizer.Constraints.Add(new SpeechRecognitionListConstraint(commands));
+            await recognizer.CompileConstraintsAsync();
+
+            var result = await recognizer.RecognizeAsync();
+
+            if ((result.Status == SpeechRecognitionResultStatus.Success) &&
+                ((result.Confidence == SpeechRecognitionConfidence.Medium) ||
+                 (result.Confidence == SpeechRecognitionConfidence.High)))
+            {
+                command = result.Text;
+            }                    
+        }
+        return (command);
+    }
+
+#endif // ENABLE_WINMD_SUPPORT
+
     public async void OnOpenSpeechCommand()
     {
         this.ClearExistingModel();
@@ -136,7 +214,7 @@ public class ModelController : ExtendedMonoBehaviour
                 // With this model coming from the network, we want to import
                 // the anchor onto the parent to put it into the same place within
                 // the space as on the device it originated from.
-                var worldAnchorBits = 
+                var worldAnchorBits =
                     await this.FileStorageManager.LoadExportedWorldAnchorAsync();
 
                 if (worldAnchorBits != null)
