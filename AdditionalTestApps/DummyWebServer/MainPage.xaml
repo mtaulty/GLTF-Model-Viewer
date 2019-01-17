@@ -1,0 +1,24 @@
+﻿<Page
+    x:Class="DummyWebServer.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:DummyWebServer"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Margin="10" Orientation="Horizontal">
+                <TextBox x:Name="txtGuidNewModel" MinWidth="200" Text="2db8b09e-5350-45b4-9e5c-5fcd2adfad5e"/>
+                <Button Content="Send New Model Message" Click="OnSendNewModelMessage"/>
+            </StackPanel>
+            <StackPanel>
+                <Button Margin="10" HorizontalAlignment="Center" Content="Capture Transform Messages" Click="OnCaptureTransformMessages"/>
+                <Button Margin="10" HorizontalAlignment="Center" Content="Stop Capturing Transform Messages" Click="OnStopCapturingTransformMessages"/>
+                <Button Margin="10" HorizontalAlignment="Center" Content="Playback Captured Transform Messages" Click="OnPlaybackCapturedTransformMessages"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>
