@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LoadedModelInfo
+public class ImportedModelInfo
 {
-    public LoadedModelInfo(RecordingFileLoader fileLoader)
+    public ImportedModelInfo(RecordingFileLoader fileLoader)
     {
         this.FileLoader = fileLoader;
     }

@@ -1,8 +1,11 @@
-﻿using System;
+﻿using HoloToolkit.Unity.InputModule;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityGLTF;
+using System.IO;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
@@ -11,17 +14,15 @@ using Windows.Media.SpeechRecognition;
 
 public class ModelController : ExtendedMonoBehaviour
 {
-    ModelLoader ModelLoader => this.gameObject.GetComponent<ModelLoader>();
+    RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
+    ModelPositioningManager ModelLoader => this.gameObject.GetComponent<ModelPositioningManager>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
-    FileStorageManager FileStorageManager => this.gameObject.GetComponent<FileStorageManager>();
-    ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
-    AnchorManager AnchorManager => this.gameObject.GetComponent<AnchorManager>();
-    ManipulationsManager ManipulationsManager => this.gameObject.GetComponent<ManipulationsManager>();
 
     static readonly string OPEN_SPEECH_TEXT = "open";
     static readonly string RESET_SPEECH_TEXT = "reset";
+    static readonly string REMOVE_SPEECH_TEXT = "remove";
 
 #if ENABLE_WINMD_SUPPORT
     SpeechRecognizer recognizer;
@@ -61,7 +62,9 @@ public class ModelController : ExtendedMonoBehaviour
         while (true)
         {
             var command = await this.SelectSpeechCommandAsync(
-                OPEN_SPEECH_TEXT, RESET_SPEECH_TEXT);
+                OPEN_SPEECH_TEXT, 
+                RESET_SPEECH_TEXT, 
+                REMOVE_SPEECH_TEXT);
 
             if (string.Compare(OPEN_SPEECH_TEXT, command, true) == 0)
             {
@@ -70,6 +73,10 @@ public class ModelController : ExtendedMonoBehaviour
             else if (string.Compare(RESET_SPEECH_TEXT, command, true) == 0)
             {
                 this.OnResetSpeechCommand();
+            }
+            else if (string.Compare(REMOVE_SPEECH_TEXT, command, true) == 0)
+            {
+                this.OnRemoveSpeechCommand();
             }
             else
             {
@@ -102,59 +109,90 @@ public class ModelController : ExtendedMonoBehaviour
     }
 
 #endif // ENABLE_WINMD_SUPPORT
-
-    public async void OnOpenSpeechCommand()
+    async void OnOpenSpeechCommand()
     {
-        this.ClearExistingModel();
-
         var filePath = await this.PickFileFrom3DObjectsFolderAsync();
 
         if (!string.IsNullOrEmpty(filePath))
         {
-            var modelDetails = await this.OpenModelFileAsync(filePath);
+            var modelDetails = await this.ImportGLTFModelFromFileAsync(filePath);
 
             if (modelDetails != null)
             {
-                // The new model should be on the gaze vector so the parent will have moved
-                // so we need to put its anchor back
-                this.AnchorManager.AddAnchorToModelParent();
+                // Our new model comes out of the file load.
+                var newModel = modelDetails.GameObject;
+                
+                // Give the new model a new identity.
+                var modelIdentifier = newModel.AddComponent<ModelIdentifier>();
 
-                // We have a new model so we can reset our notion of its identity
-                this.ModelIdentifier.CreateNew();
+                // Make it focusable.
+                newModel.AddComponent<FocusWatcher>();
 
-                // Make it so that this model can be manipulated with gestures.
-                this.ManipulationsManager.AddHandManipulationsToModel();
+                // Add positioning.
+                var positioningManager = newModel.AddComponent<ModelPositioningManager>();
+                positioningManager.InitialiseSizeAndPositioning(
+                    this.RootParentProvider.RootParent);
 
-                // We can write out all the files that were part of loading this model
+                // Add manipulations to the new model so it can be moved around.
+                var manipManager = newModel.AddComponent<ModelUpdatesManager>();
+                manipManager.AddHandManipulationsToModel();
+
+                // Add an anchor to the new model's parent such that we can then
+                // anchor the parent while moving the model around within it 
+                // (anchored components can't move).
+                var anchorManager = newModel.AddComponent<AnchorManager>();
+                anchorManager.AddAnchorToModelParent();
+
+                // Write out all the files that were part of loading this model
                 // into a file in case they need sharing in future.
-                await this.FileStorageManager.StoreFileListAsync(modelDetails.FileLoader);
+                await FileStorageManager.StoreFileListAsync(
+                    (Guid)modelIdentifier.Identifier, modelDetails.FileLoader);
 
                 // And export the anchor into the file system as well.
                 // TODO: this will currently wait "for ever" for the world anchor to be
                 // located which might be wildly optimistic, we should probably add some
                 // notion of a timeout on that here too.
-                var exportedAnchorBits = await this.AnchorManager.ExportAnchorAsync();
+                var exportedAnchorBits = await anchorManager.ExportAnchorAsync();
 
                 if (exportedAnchorBits != null)
                 {
                     // Store that into the file system so that the web server can later
                     // serve it up on request.
-                    await this.FileStorageManager.StoreExportedWorldAnchorAsync(exportedAnchorBits);
+                    await FileStorageManager.StoreExportedWorldAnchorAsync(
+                        (Guid)modelIdentifier.Identifier,
+                        exportedAnchorBits);
 
                     // Message out to the network that we have a new model that they
                     // can optionally grab if they want to.
-                    NetworkMessagingProvider.SendNewModelMessage((Guid)this.ModelIdentifier.Identifier);
+                    NetworkMessagingProvider.SendNewModelMessage(
+                        (Guid)modelIdentifier.Identifier);
                 }
             }
         }
     }
-    public void OnResetSpeechCommand()
+    void OnResetSpeechCommand()
     {
-        if (this.ModelIdentifier.HasModel)
+        if (FocusWatcher.HasFocusedObject)
         {
+            var focusedObject = FocusWatcher.FocusedObject;
+
             this.AudioManager.PlayClip(AudioClipType.Resetting);
 
-            this.ModelLoader.ReturnModelToLoadedPosition();
+            focusedObject.GetComponent<ModelPositioningManager>().ReturnModelToLoadedPosition();
+        }
+    }
+    void OnRemoveSpeechCommand()
+    {
+        if (FocusWatcher.HasFocusedObject)
+        {
+            var focusedObject = FocusWatcher.FocusedObject;
+
+            // Send network message saying we have got rid of this object in case others
+            // are displaying it.
+            var modelIdentifier = focusedObject.GetComponent<ModelIdentifier>();
+            NetworkMessagingProvider.SendDeletedModelMessage(modelIdentifier.Identifier);
+
+            focusedObject.GetComponent<ModelUpdatesManager>().Destroy();
         }
     }
     void ShowBusy(string message)
@@ -173,7 +211,7 @@ public class ModelController : ExtendedMonoBehaviour
         var modelFilePath = string.Empty;
 
         var modelDownloader = new HttpModelDownloader(
-            this.FileStorageManager, modelIdentifier, ipAddress);
+            modelIdentifier, ipAddress);
 
         try
         {
@@ -194,8 +232,6 @@ public class ModelController : ExtendedMonoBehaviour
 
         if (acceptDownload)
         {
-            this.ClearExistingModel();
-
             this.ShowBusy("Downloading model files...");
 
             var modelFilePath = await this.DownloadModelToLocalStorageAsync(
@@ -203,24 +239,37 @@ public class ModelController : ExtendedMonoBehaviour
 
             if (!string.IsNullOrEmpty(modelFilePath))
             {
-                // Flag that the ID of this model came from over the network, we didn't
-                // open it ourselves.
-                this.ModelIdentifier.AssignExistingFromNetworkedShare(e.ModelIdentifier);
-
                 // Open the model from the file as we would if the user had selected
                 // it via a dialog.
-                await this.OpenModelFileAsync(modelFilePath);
+                var modelDetails = await this.ImportGLTFModelFromFileAsync(modelFilePath);
+                var newModel = modelDetails.GameObject;
 
+                // Flag that the ID of this model came from over the network, we didn't
+                // open it ourselves.
+                var modelIdentifier = newModel.AddComponent<ModelIdentifier>();
+                modelIdentifier.AssignExistingFromNetworkedShare(e.ModelIdentifier);
+
+                // Add positioning.
+                var positioningManager = newModel.AddComponent<ModelPositioningManager>();
+                positioningManager.InitialiseSizeAndPositioning(
+                    this.RootParentProvider.RootParent);
+
+                // And updates (this handles incoming transformation messages along
+                // with removal messages too)
+                newModel.AddComponent<ModelUpdatesManager>();
+                
                 // With this model coming from the network, we want to import
                 // the anchor onto the parent to put it into the same place within
                 // the space as on the device it originated from.
                 var worldAnchorBits =
-                    await this.FileStorageManager.LoadExportedWorldAnchorAsync();
+                    await FileStorageManager.LoadExportedWorldAnchorAsync(modelIdentifier.Identifier);
 
                 if (worldAnchorBits != null)
                 {
+                    var anchorManager = newModel.AddComponent<AnchorManager>();
+
                     // TODO: if this fails then?...
-                    await this.AnchorManager.ImportAnchorToModelParent(worldAnchorBits);
+                    await anchorManager.ImportAnchorToModelParent(worldAnchorBits);
                 }
             }
             else
@@ -230,51 +279,6 @@ public class ModelController : ExtendedMonoBehaviour
             }
         }
     }
-    void ClearExistingModel()
-    {
-        // Get rid of any manipulations on the model.
-        this.ManipulationsManager.RemoveManipulationsFromModel();
-
-        // Get rid of the previous model regardless of whether the user chooses
-        // a new one or not with a review to avoiding cluttering the screen.
-        this.ModelLoader.DisposeExistingGLTFModel();
-
-        // Get rid of any spatial anchor on the parent so that we can re-add
-        // it if necessary when the new model has loaded and the parent has
-        // been moved to match the user's gaze.
-        this.AnchorManager.RemoveAnchorFromModelParent();
-
-        // Get rid of any identity associated with the model
-        this.ModelIdentifier.Clear();
-    }
-    async Task<LoadedModelInfo> OpenModelFileAsync(string filePath)
-    {
-        this.ShowBusy("Loading model...");
-
-        LoadedModelInfo modelDetails = null;
-
-        // Load the model.
-        try
-        {
-            modelDetails = await this.ModelLoader.OpenNewModelAsync(filePath);
-        }
-        catch
-        {
-            // TODO: figure out sensible exceptions here.
-        }
-        this.HideBusy();
-
-        if (modelDetails?.GameObject != null)
-        {
-            this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
-        }
-        else
-        {
-            this.AudioManager?.PlayClip(AudioClipType.LoadError);
-        }
-        return (modelDetails);
-    }
-
     async Task<string> PickFileFrom3DObjectsFolderAsync()
     {
         var filePath = string.Empty;
@@ -297,5 +301,43 @@ public class ModelController : ExtendedMonoBehaviour
 #endif // ENABLE_WINMD_SUPPORT
 
         return (filePath);
+    }
+    async Task<ImportedModelInfo> ImportGLTFModelFromFileAsync(string filePath)
+    {
+        this.ShowBusy("Loading model...");
+
+        ImportedModelInfo modelDetails = null;
+
+        try
+        {
+            modelDetails = new ImportedModelInfo(
+                new RecordingFileLoader(Path.GetDirectoryName(filePath)));
+
+            GLTFSceneImporter importer = new GLTFSceneImporter(
+                Path.GetFileName(filePath), modelDetails.FileLoader);
+
+            importer.Collider = GLTFSceneImporter.ColliderType.Box;
+
+            await base.RunCoroutineAsync(
+                importer.LoadScene(
+                    -1,
+                    gameObject => modelDetails.GameObject = gameObject)
+            );
+        }
+        catch
+        {
+            // TODO: figure out sensible exceptions here.
+        }
+        this.HideBusy();
+
+        if (modelDetails?.GameObject != null)
+        {
+            this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
+        }
+        else
+        {
+            this.AudioManager?.PlayClip(AudioClipType.LoadError);
+        }
+        return (modelDetails);
     }
 }

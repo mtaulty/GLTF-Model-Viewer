@@ -3,34 +3,50 @@ using HoloToolkit.Unity.UX;
 using System;
 using UnityEngine;
 
-public class ManipulationsManager : MonoBehaviour
+public class ModelUpdatesManager : MonoBehaviour
 {
     [SerializeField]
     BoundingBox boundingBoxPrefab;
 
-    CurrentModelProvider CurrentModelProvider => this.gameObject.GetComponent<CurrentModelProvider>();
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
 
+    internal void Destroy()
+    {
+        // Get rid of the parent.
+        Destroy(this.gameObject.transform.parent);
+
+        // Get rid of the object itself.
+        Destroy(this.gameObject);
+    }
     void Start()
     {
-        NetworkMessagingProvider.TransformChange += OnTransformChangeMessage;
+        NetworkMessagingProvider.TransformChange += this.OnTransformChangeMessage;
+        NetworkMessagingProvider.DeletedModelOnNetwork += this.OnDeletedModelMessage;
+    }
+    void OnDestroy()
+    {
+        NetworkMessagingProvider.TransformChange -= this.OnTransformChangeMessage;
+        NetworkMessagingProvider.DeletedModelOnNetwork -= this.OnDeletedModelMessage;
+    }
+    void OnDeletedModelMessage(object sender, DeletedModelOnNetworkEventArgs e)
+    {
+        if (this.ModelIdentifier.IsSharedFromNetwork &&
+            this.ModelIdentifier.Identifier == e.ModelIdentifier)
+        {
+            // This model has been deleted remotely, we need to get rid of it.
+            this.Destroy();
+        }
     }
     void OnTransformChangeMessage(object sender, TransformChangeEventArgs e)
     {
-        if (this.ModelIdentifier.HasModel &&
-            this.ModelIdentifier.IsSharedFromNetwork &&
+        if (this.ModelIdentifier.IsSharedFromNetwork &&
             (this.ModelIdentifier.Identifier == e.ModelIdentifier) &&
             (!this.isMulticastingTransforms)) // last clasuse should be redundant really
         {
             // We're interested...
-            var gameObject = this.CurrentModelProvider.CurrentModel;
-
-            if (gameObject != null)
-            {
-                gameObject.transform.localScale = e.Scale;
-                gameObject.transform.localRotation = e.Rotation;
-                gameObject.transform.localPosition = e.Translation;
-            }
+            this.gameObject.transform.localScale = e.Scale;
+            this.gameObject.transform.localRotation = e.Rotation;
+            this.gameObject.transform.localPosition = e.Translation;
         }
     }
     public void AddHandManipulationsToModel()
@@ -38,24 +54,10 @@ public class ManipulationsManager : MonoBehaviour
         this.isMulticastingTransforms = true;
 
         // Now need to add behaviours for rotate, transform, scale, etc.
-        var twoHandManips = this.CurrentModelProvider.CurrentModel.AddComponent<TwoHandManipulatable>();
+        var twoHandManips = this.gameObject.AddComponent<TwoHandManipulatable>();
         twoHandManips.BoundingBoxPrefab = this.boundingBoxPrefab;
         twoHandManips.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
         twoHandManips.RotationConstraint = AxisConstraint.None;
-    }
-    public void RemoveManipulationsFromModel()
-    {
-        this.isMulticastingTransforms = false;
-        this.currentRotation = null;
-        this.currentScale = null;
-        this.currentTranslation = null;
-
-        var manipulations = this.CurrentModelProvider.CurrentModel?.GetComponent<TwoHandManipulatable>();
-
-        if (manipulations != null)
-        {
-            Destroy(manipulations);
-        }
     }
     void Update()
     {
@@ -63,9 +65,9 @@ public class ManipulationsManager : MonoBehaviour
         // different gameObject which is provided by the CurrentModelProvider.
         if (this.isMulticastingTransforms)
         {
-            var transform = this.CurrentModelProvider.CurrentModel.transform;
-            
-            if (!this.currentRotation.HasValue || 
+            var transform = this.gameObject.transform;
+
+            if (!this.currentRotation.HasValue ||
                 !this.currentRotation.Value.EqualToTolerance(transform.localRotation, ROTATION_TOLERANCE) ||
                 !this.currentTranslation.Value.EqualToTolerance(transform.localPosition, POSITION_TOLERANCE) ||
                 !this.currentScale.Value.EqualToTolerance(transform.localScale, SCALE_TOLERANCE))
@@ -77,9 +79,9 @@ public class ManipulationsManager : MonoBehaviour
                 this.currentScale = transform.localScale;
 
                 NetworkMessagingProvider.SendTransformChangeMessage(
-                    (Guid)this.ModelIdentifier.Identifier, 
-                    (Vector3)this.currentScale, 
-                    (Quaternion)this.currentRotation, 
+                    (Guid)this.ModelIdentifier.Identifier,
+                    (Vector3)this.currentScale,
+                    (Quaternion)this.currentRotation,
                     (Vector3)this.currentTranslation);
             }
         }

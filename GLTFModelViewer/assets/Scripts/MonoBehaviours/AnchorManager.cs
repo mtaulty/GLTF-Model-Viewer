@@ -8,27 +8,17 @@ using UnityEngine.XR.WSA.Sharing;
 
 public class AnchorManager : MonoBehaviour
 {
-    ParentProvider ParentProvider => this.gameObject.GetComponent<ParentProvider>();
+    GameObject AnchoredParent => this.gameObject.transform.parent.gameObject;
 
-    public void RemoveAnchorFromModelParent()
-    {
-        // Unanchor the parent.
-        var anchor = this.ParentProvider.GLTFModelParent.GetComponent<WorldAnchor>();
-
-        if (anchor != null)
-        {
-            Destroy(anchor);
-        }
-    }
     public void AddAnchorToModelParent()
     {
         // Anchor the parent.
-        this.ParentProvider.GLTFModelParent.AddComponent<WorldAnchor>();
+        this.AnchoredParent.AddComponent<WorldAnchor>();
     }
     public async Task<bool> ImportAnchorToModelParent(byte[] worldAnchorBits)
     {
         var result = await ImportWorldAnchorToGameObjectAsync(
-            this.ParentProvider.GLTFModelParent,
+            this.AnchoredParent,
             worldAnchorBits);
 
         return (result);
@@ -38,12 +28,12 @@ public class AnchorManager : MonoBehaviour
         // Before we can export the anchor, we probably need to wait for it to
         // say that it is located otherwise (AFAIK) the export fails.
         await AwaitableUpdateLoopCondition.WaitForConditionAsync(
-            this.ParentProvider.GLTFModelParent,
+            this.AnchoredParent,
             parent => parent.GetComponent<WorldAnchor>().isLocated);
 
         // We now think that the anchor is located so we can try to export it
         // into a file.
-        byte[] bits = await ExportWorldAnchorForGameObjectAsync(this.ParentProvider.GLTFModelParent);
+        byte[] bits = await ExportWorldAnchorForGameObjectAsync(this.AnchoredParent);
 
         return (bits);
     }

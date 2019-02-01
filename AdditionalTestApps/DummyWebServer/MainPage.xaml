@@ -7,18 +7,57 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
     <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <StackPanel Margin="10" Orientation="Horizontal">
-                <TextBox x:Name="txtGuidNewModel" MinWidth="200" Text="2db8b09e-5350-45b4-9e5c-5fcd2adfad5e"/>
-                <Button Content="Send New Model Message" Click="OnSendNewModelMessage"/>
-            </StackPanel>
-            <StackPanel>
-                <Button Margin="10" HorizontalAlignment="Center" Content="Capture Transform Messages" Click="OnCaptureTransformMessages"/>
-                <Button Margin="10" HorizontalAlignment="Center" Content="Stop Capturing Transform Messages" Click="OnStopCapturingTransformMessages"/>
-                <Button Margin="10" HorizontalAlignment="Center" Content="Playback Captured Transform Messages" Click="OnPlaybackCapturedTransformMessages"/>
-            </StackPanel>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="10">
+            <TextBlock Text="Observed Multicast New Model Ids" Margin="10"/>
+            <ListBox Grid.Row="0" Margin="10" ItemsSource="{x:Bind ObservedNewModels}" 
+                     SelectedItem="{x:Bind SelectedNewModel,Mode=TwoWay}"
+                     HorizontalContentAlignment="Stretch"
+                     VerticalContentAlignment="Stretch">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:RemoteModelViewModel">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind Identifier}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="Record Transforms" IsEnabled="{x:Bind CanRecordTransforms,Mode=OneWay}" Click="{x:Bind OnRecordTransforms}"/>
+                            <Button Grid.Column="2" Content="Stop Recording" IsEnabled="{x:Bind IsRecordingTransforms,Mode=OneWay}" Click="{x:Bind OnStopRecordingTransforms}"/>
+                            <Button Grid.Column="3" Content="Set As Current Transforms" IsEnabled="{x:Bind CanRecordTransforms,Mode=OneWay}" Click="{x:Bind OnSetAsCurrentTransforms}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </StackPanel>
+        <StackPanel Grid.Row="1" Margin="10">
+            <TextBlock Text="Observed Multicast Deleted Model Ids" Margin="10"/>
+            <ListBox Grid.Row="0" Margin="10" ItemsSource="{x:Bind ObservedDeletedModelIds}" >
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Margin="10">
+            <TextBox MinWidth="200" Text="{x:Bind GuidForNewModelMessage,Mode=TwoWay}"/>
+            <Button HorizontalAlignment="Stretch" Content="Send New Model" Click="{x:Bind OnSendNewModelMessage}"/>
+            <TextBox MinWidth="200" Text="{x:Bind GuidForDeleteModelMessage,Mode=TwoWay}"/>
+            <Button HorizontalAlignment="Stretch" Content="Send Delete Model" Click="{x:Bind OnSendDeleteModelMessage}"/>
+            <TextBox MinWidth="200" Text="{x:Bind GuidForTransformPlayback,Mode=TwoWay}"/>
+            <Button HorizontalAlignment="Stretch" IsEnabled="{x:Bind CanPlaybackTransforms,Mode=OneWay}" Content="Playback Transforms to Model" Click="{x:Bind OnPlaybackTransformsToModel}"/>
+        </StackPanel>
+        <Grid Background="Black" Opacity="1" Grid.RowSpan="3" Visibility="{x:Bind IsPlayingBack,Mode=OneWay}">
+            <ProgressRing HorizontalAlignment="Center" VerticalAlignment="Center" Width="200" Height="200" IsActive="true"/>
+        </Grid>
     </Grid>
 </Page>

@@ -11,29 +11,28 @@ using Windows.Storage;
 using System.Runtime.InteropServices.WindowsRuntime;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class FileStorageManager : MonoBehaviour
+public static class FileStorageManager
 {
-    ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
-
     static readonly string SUBFOLDER_PATH = "gltfViewer";
     static readonly string FILE_LIST_FILE_EXTENSION = ".fil";
     static readonly string FILE_ANCHOR_FILE_EXTENSION = ".anc";
 
-    string WorldAnchorFileName =>
-        $"{this.ModelIdentifier.Identifier}{FILE_ANCHOR_FILE_EXTENSION}";
+    static string AppSubFolderName => SUBFOLDER_PATH;
 
-    string FileListFileName =>
-        $"{this.ModelIdentifier.Identifier}{FILE_LIST_FILE_EXTENSION}";
+    static string GetWorldAnchorFileName(Guid modelIdentifier) =>
+        $"{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
-    string AppSubFolderName => SUBFOLDER_PATH;
+    static string GetFileListFileName(Guid modelIdentifier) =>
+        $"{modelIdentifier}{FILE_LIST_FILE_EXTENSION}";
 
-    public string GetFileListRelativeUri(Guid modelIdentifier)
-        => $"{this.AppSubFolderName}/{modelIdentifier}{FILE_LIST_FILE_EXTENSION}";
+    public static string GetFileListRelativeUri(Guid modelIdentifier)
+        => $"{AppSubFolderName}/{modelIdentifier}{FILE_LIST_FILE_EXTENSION}";
 
-    public string GetAnchorFileRelativeUri(Guid modelIdentifier) => 
-        $"{this.AppSubFolderName}/{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
+    public static string GetAnchorFileRelativeUri(Guid modelIdentifier) => 
+        $"{AppSubFolderName}/{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
-    public async Task StoreFileListAsync(RecordingFileLoader fileRecorder)
+    public static async Task StoreFileListAsync(Guid modelIdentifier,
+        RecordingFileLoader fileRecorder)
     {
 #if ENABLE_WINMD_SUPPORT
         var baseLoadPath = fileRecorder.BaseDirectoryPath.ToLower().TrimEnd('\\');
@@ -46,28 +45,30 @@ public class FileStorageManager : MonoBehaviour
         var relativePaths = fileRecorder.RelativeLoadedFilePaths.Select(
             path => Path.Combine("\\", relativePath, path).Replace('\\', '/'));
 
-        var file = await GetSubFolderFileAsync(this.FileListFileName, true);
+        var file = await GetSubFolderFileAsync(
+            GetFileListFileName(modelIdentifier), true);
 
         await FileIO.WriteLinesAsync(file, relativePaths);
 
 #endif // ENABLE_WINMD_SUPPORT
     }
-    public async Task StoreExportedWorldAnchorAsync(byte[] worldAnchorBits)
+    public static async Task StoreExportedWorldAnchorAsync(Guid modelIdentifier, byte[] worldAnchorBits)
     {
 #if ENABLE_WINMD_SUPPORT
-        var file = await GetSubFolderFileAsync(this.WorldAnchorFileName, true);
+        var file = await GetSubFolderFileAsync(
+            GetWorldAnchorFileName(modelIdentifier), true);
 
         await FileIO.WriteBytesAsync(file, worldAnchorBits);
 
 #endif // ENABLE_WINMD_SUPPORT
     }    
-    public async Task<byte[]> LoadExportedWorldAnchorAsync()
+    public static async Task<byte[]> LoadExportedWorldAnchorAsync(Guid modelIdentifier)
     {
         byte[] bits = null;
 
 #if ENABLE_WINMD_SUPPORT
-
-        var anchorFile = await this.GetSubFolderFileAsync(this.WorldAnchorFileName, false);
+        var anchorFile = await GetSubFolderFileAsync(
+            GetWorldAnchorFileName(modelIdentifier), false);
 
         var buffer = await FileIO.ReadBufferAsync(anchorFile);
 
@@ -77,22 +78,8 @@ public class FileStorageManager : MonoBehaviour
 
         return (bits);
     }
-#if ENABLE_WINMD_SUPPORT
-    async Task<StorageFile> GetSubFolderFileAsync(string fileName, bool shouldCreateFile)
-    {
-        var parentFolder = KnownFolders.Objects3D;
-
-        var subFolder = await parentFolder.CreateFolderAsync(
-            this.AppSubFolderName, CreationCollisionOption.OpenIfExists);
-
-        var openFlags = 
-            shouldCreateFile ? CreationCollisionOption.ReplaceExisting : CreationCollisionOption.OpenIfExists;
-
-        var storageFile = await subFolder.CreateFileAsync(fileName, openFlags);
-
-        return (storageFile);
-    }    
-    public async Task<StorageFile> GetStorageFileForRelativeUriAsync(string relativeUri)
+#if ENABLE_WINMD_SUPPORT   
+    public static async Task<StorageFile> GetStorageFileForRelativeUriAsync(string relativeUri)
     {
         var topFolder = KnownFolders.Objects3D;
 
@@ -110,5 +97,19 @@ public class FileStorageManager : MonoBehaviour
 
         return (file);
     }
+    static async Task<StorageFile> GetSubFolderFileAsync(string fileName, bool shouldCreateFile)
+    {
+        var parentFolder = KnownFolders.Objects3D;
+
+        var subFolder = await parentFolder.CreateFolderAsync(
+            AppSubFolderName, CreationCollisionOption.OpenIfExists);
+
+        var openFlags = 
+            shouldCreateFile ? CreationCollisionOption.ReplaceExisting : CreationCollisionOption.OpenIfExists;
+
+        var storageFile = await subFolder.CreateFileAsync(fileName, openFlags);
+
+        return (storageFile);
+    } 
 #endif // ENABLE_WINMD_SUPPORT
 }

@@ -13,12 +13,10 @@ using Windows.Web.Http;
 public class HttpModelDownloader : MonoBehaviour
 {
     public HttpModelDownloader(
-        FileStorageManager fileStorageManager,
         Guid modelIdentifier,
         IPAddress remoteHostIpAddress,
         int remotePort = 8088)
     {
-        this.fileStorageManager = fileStorageManager;
         this.modelIdentifier = modelIdentifier;
         this.remoteHostIpAddress = remoteHostIpAddress;
         this.remotePort = remotePort;
@@ -27,10 +25,10 @@ public class HttpModelDownloader : MonoBehaviour
     {
 #if ENABLE_WINMD_SUPPORT
         // We first download the file list which tells us which files make up the model.
-        var fileListUri = this.fileStorageManager.GetFileListRelativeUri(this.modelIdentifier);
+        var fileListUri = FileStorageManager.GetFileListRelativeUri(this.modelIdentifier);
 
         // Get a local storage file within the 3D objects folder to store that into.
-        var fileListLocalFile = await this.fileStorageManager.GetStorageFileForRelativeUriAsync(
+        var fileListLocalFile = await FileStorageManager.GetStorageFileForRelativeUriAsync(
             fileListUri);
 
         // Download the remote file list.
@@ -60,7 +58,7 @@ public class HttpModelDownloader : MonoBehaviour
             worked = true;
 
             // Add into that the URI for the anchor file so that we download this too
-            var remoteAnchorFileUri = this.fileStorageManager.GetAnchorFileRelativeUri(
+            var remoteAnchorFileUri = FileStorageManager.GetAnchorFileRelativeUri(
                 this.modelIdentifier);
 
             remoteUrisForModel.Add(remoteAnchorFileUri);
@@ -70,7 +68,7 @@ public class HttpModelDownloader : MonoBehaviour
             {
                 // Recurse down & make sure we have a file in the right folder to store
                 // this locally.
-                var localFile = await this.fileStorageManager.GetStorageFileForRelativeUriAsync(
+                var localFile = await FileStorageManager.GetStorageFileForRelativeUriAsync(
                     remoteUrisForModel[i]);   
         
                 // Store off the first local file path as we assume that will be the .GLB or
@@ -131,5 +129,4 @@ public class HttpModelDownloader : MonoBehaviour
     Guid modelIdentifier;
     IPAddress remoteHostIpAddress;
     int remotePort;
-    FileStorageManager fileStorageManager;
 }

@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ParentProvider : MonoBehaviour
+public class RootParentProvider : MonoBehaviour
 {
     [SerializeField]
     GameObject parentObject;
 
-    public GameObject GLTFModelParent => this.parentObject;
+    public GameObject RootParent => this.parentObject;
+
 }

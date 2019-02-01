@@ -14,6 +14,7 @@ internal static class NetworkMessagingProvider
 {
     internal static event EventHandler<NewModelOnNetworkEventArgs> NewModelOnNetwork;
     internal static event EventHandler<TransformChangeEventArgs> TransformChange;
+    internal static event EventHandler<DeletedModelOnNetworkEventArgs> DeletedModelOnNetwork;
 
     // Note - this defines a dependency between this script and the IP Address Provider
     // being created before we arrive here.
@@ -33,15 +34,33 @@ internal static class NetworkMessagingProvider
                 messageRegistrar.RegisterMessageFactory<TransformChangeMessage>(
                     () => new TransformChangeMessage());
 
+            deleteMessageKey =
+                messageRegistrar.RegisterMessageFactory<DeleteModelMessage>(
+                    () => new DeleteModelMessage());
+
             messageRegistrar.RegisterMessageHandler<NewModelMessage>(
                 OnNewModelOnNetwork);
 
             messageRegistrar.RegisterMessageHandler<TransformChangeMessage>(
                 OnTransformChangeOnNetwork);
 
+            messageRegistrar.RegisterMessageHandler<DeleteModelMessage>(
+                OnDeletedModelOnNetwork);
+
             messageService = new MessageService(messageRegistrar);
 
             messageService.Open();
+        }
+#endif // ENABLE_WINMD_SUPPORT
+    }
+    internal static void SendDeletedModelMessage(Guid identifier)
+    {
+#if ENABLE_WINMD_SUPPORT
+        if (IPAddressProvider.HasIpAddress)
+        {
+            var message = (DeleteModelMessage)messageRegistrar.CreateMessage(deleteMessageKey);
+            message.ModelIdentifier = identifier;
+            messageService.Send(message);
         }
 #endif // ENABLE_WINMD_SUPPORT
     }
@@ -98,9 +117,16 @@ internal static class NetworkMessagingProvider
             )
         );
     }
+    static void OnDeletedModelOnNetwork(object obj)
+    {
+        DeleteModelMessage message = obj as DeleteModelMessage;
 
+        DeletedModelOnNetwork?.Invoke(
+            null, new DeletedModelOnNetworkEventArgs(message.ModelIdentifier));
+    }
     static MessageTypeKey newModelMessageKey;
     static MessageTypeKey transformMessageKey;
+    static MessageTypeKey deleteMessageKey;
     static MessageService messageService;
     static MessageRegistrar messageRegistrar;
 #endif // ENABLE_WINMD_SUPPORT

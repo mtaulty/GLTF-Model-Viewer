@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Net;
 using System;
-
 using MulticastMessaging;
 using MulticastMessaging.Messages;
 
-
-internal static class NetworkMessagingProvider 
+internal static class NetworkMessagingProvider
 {
     // Note - this defines a dependency between this script and the IP Address Provider
     // being created before we arrive here.
     internal static void Initialise(
+        Action<object> newModelCallback,
+        Action<object> deletedModelCallback,
         Action<object> transformCallback)
     {
         if (IPAddressProvider.HasIpAddress)
@@ -22,12 +22,21 @@ internal static class NetworkMessagingProvider
                 messageRegistrar.RegisterMessageFactory<NewModelMessage>(
                     () => new NewModelMessage());
 
+            messageRegistrar.RegisterMessageHandler<NewModelMessage>(newModelCallback);
+
             transformMessageKey =
                 messageRegistrar.RegisterMessageFactory<TransformChangeMessage>(
                     () => new TransformChangeMessage());
 
             messageRegistrar.RegisterMessageHandler<TransformChangeMessage>(
                 transformCallback);
+
+            deletedMessageKey =
+                messageRegistrar.RegisterMessageFactory<DeleteModelMessage>(
+                    () => new DeleteModelMessage());
+
+            messageRegistrar.RegisterMessageHandler<DeleteModelMessage>(
+                deletedModelCallback);
 
             messageService = new MessageService(messageRegistrar,
                 IPAddressProvider.IPAddress.ToString());
@@ -41,6 +50,15 @@ internal static class NetworkMessagingProvider
         {
             var message = (NewModelMessage)messageRegistrar.CreateMessage(newModelMessageKey);
             message.ServerIPAddress = IPAddressProvider.IPAddress;
+            message.ModelIdentifier = identifier;
+            messageService.Send(message);
+        }
+    }
+    internal static void SendDeleteModelMessage(Guid identifier)
+    {
+        if (IPAddressProvider.HasIpAddress)
+        {
+            var message = (DeleteModelMessage)messageRegistrar.CreateMessage(deletedMessageKey);
             message.ModelIdentifier = identifier;
             messageService.Send(message);
         }
@@ -60,6 +78,7 @@ internal static class NetworkMessagingProvider
     }
     static MessageTypeKey newModelMessageKey;
     static MessageTypeKey transformMessageKey;
+    static MessageTypeKey deletedMessageKey;
     static MessageService messageService;
     static MessageRegistrar messageRegistrar;
 }
