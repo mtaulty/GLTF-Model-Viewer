@@ -271,12 +271,14 @@ public class ModelController : ExtendedMonoBehaviour
                     // TODO: if this fails then?...
                     await anchorManager.ImportAnchorToModelParent(worldAnchorBits);
                 }
+                // Let the user know about what to expect with their first shared model.
+                this.AudioManager.PlayClipOnceOnly(AudioClipType.FirstSharedModelOpened);
             }
             else
             {
                 this.AudioManager.PlayClip(AudioClipType.ErrorDownloadingModel);
-                this.HideBusy();
             }
+            this.HideBusy();
         }
     }
     async Task<string> PickFileFrom3DObjectsFolderAsync()

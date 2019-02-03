@@ -14,7 +14,8 @@ public enum AudioClipType
     WelcomeBack,
     FirstModelOpened,
     PickFileFrom3DObjectsFolder,
-    ErrorDownloadingModel
+    ErrorDownloadingModel,
+    FirstSharedModelOpened
 }
 [Serializable]
 public class AudioClipEntry
