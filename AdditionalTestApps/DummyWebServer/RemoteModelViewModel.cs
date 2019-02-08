@@ -65,14 +65,15 @@ namespace DummyWebServer
                 base.FirePropertyChanged(nameof(RecordedTransformCount));
             }
         }
-        public async Task PlaybackCapturedTransformMessagesAsync()
+        public async Task PlaybackCapturedTransformMessagesAsync(
+            Guid modelIdentifier)
         {
             foreach (var entry in this.recordedEntries)
             {
                 await Task.Delay(entry.Interval);
 
                 NetworkMessagingProvider.SendTransformChangeMessage(
-                    this.identifier,
+                    modelIdentifier,
                     entry.TransformChange.Scale,
                     entry.TransformChange.Rotation,
                     entry.TransformChange.Translation);

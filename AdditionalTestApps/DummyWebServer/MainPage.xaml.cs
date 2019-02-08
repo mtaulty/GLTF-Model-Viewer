@@ -168,7 +168,12 @@ namespace DummyWebServer
         async void OnPlaybackTransformsToModel()
         {
             this.IsPlayingBack = true;
-            await this.modelForTransformPlayback.PlaybackCapturedTransformMessagesAsync();
+
+            Guid guidValue;
+            if (Guid.TryParse(this.GuidForTransformPlayback, out guidValue))
+            {
+                await this.modelForTransformPlayback.PlaybackCapturedTransformMessagesAsync(guidValue);
+            }
             this.IsPlayingBack = false;
         }
         void FirePropertyChanged(string property)
