@@ -28,11 +28,15 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{x:Bind Identifier}" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Content="Record Transforms" IsEnabled="{x:Bind CanRecordTransforms,Mode=OneWay}" Click="{x:Bind OnRecordTransforms}"/>
-                            <Button Grid.Column="2" Content="Stop Recording" IsEnabled="{x:Bind IsRecordingTransforms,Mode=OneWay}" Click="{x:Bind OnStopRecordingTransforms}"/>
-                            <Button Grid.Column="3" Content="Set As Current Transforms" IsEnabled="{x:Bind CanRecordTransforms,Mode=OneWay}" Click="{x:Bind OnSetAsCurrentTransforms}"/>
+                            <TextBlock Margin="10,0,10,0" Text="{x:Bind Identifier}" VerticalAlignment="Center"/>
+                            <TextBlock Margin="10,0,10,0" Grid.Column="1" Text="{x:Bind RemoteHostIp}" VerticalAlignment="Center"/>
+                            <Button Margin="10,0,10,0"  Grid.Column="2" Content="Record Transforms" IsEnabled="{x:Bind CanRecordTransforms,Mode=OneWay}" Click="{x:Bind OnRecordTransforms}"/>
+                            <Button Margin="10,0,10,0" Grid.Column="3" Content="Stop Recording" IsEnabled="{x:Bind IsRecordingTransforms,Mode=OneWay}" Click="{x:Bind OnStopRecordingTransforms}"/>
+                            <Button Margin="10,0,10,0" Grid.Column="4" Content="Set As Current Transforms" IsEnabled="{x:Bind CanRecordTransforms,Mode=OneWay}" Click="{x:Bind OnSetAsCurrentTransforms}"/>
+                            <Button Margin="10,0,10,0" Grid.Column="5" Content="Request Model" Click="{x:Bind OnRequestModelAsync}"/>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

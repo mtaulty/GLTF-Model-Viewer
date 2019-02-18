@@ -60,7 +60,9 @@ namespace UwpHttpServer
         {
             // Note: context.Response.StatusCode (by definition at the time of writing)
             // comes into this function set to 200/OK.
-            var requestPath = context.Request.RawUrl.TrimStart('/').Replace('/','\\');
+            var decodedUrl = Uri.UnescapeDataString(context.Request.RawUrl);
+
+            var requestPath = decodedUrl.TrimStart('/').Replace('/','\\');
 
             var fullPath = Path.Combine(this.folder.Path, requestPath);
 

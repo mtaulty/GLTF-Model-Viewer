@@ -3,14 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using UnityEngine;
-
-#if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
 using Windows.Web.Http;
-#endif // ENABLE_WINMD_SUPPORT
 
-public class HttpModelDownloader : MonoBehaviour
+public class HttpModelDownloader
 {
     public HttpModelDownloader(
         Guid modelIdentifier,
@@ -23,7 +19,6 @@ public class HttpModelDownloader : MonoBehaviour
     }
     async Task<List<string>> DownloadRemoteUriListForModelAsync()
     {
-#if ENABLE_WINMD_SUPPORT
         // We first download the file list which tells us which files make up the model.
         var fileListUri = FileStorageManager.GetFileListRelativeUri(this.modelIdentifier);
 
@@ -38,16 +33,12 @@ public class HttpModelDownloader : MonoBehaviour
         var remoteFileUris = await FileIO.ReadLinesAsync(fileListLocalFile);
 
         return (remoteFileUris.ToList());
-#else
-        throw new InvalidOperationException();
-#endif // ENABLE_WINMD_SUPPORT
     }
     public async Task<string> DownloadModelToLocalStorageAsync()
     {
         var worked = false;
         var mainFilePath = string.Empty;
 
-#if ENABLE_WINMD_SUPPORT
         // Grab the list of Uris/Files that make up the remote model. Note that there
         // is an assumption that the first file here will be the actual GLB/GLTF file
         // otherwise the code below which sets mainFilePath will not work.
@@ -91,12 +82,9 @@ public class HttpModelDownloader : MonoBehaviour
                 }
             }
         }
-#endif // ENABLE_WINMD_SUPPORT
-
         return (worked ? mainFilePath : string.Empty);
     }
-#if ENABLE_WINMD_SUPPORT
-    async Task<bool> DownloadToStorageFileAsync(
+   async Task<bool> DownloadToStorageFileAsync(
         string remoteRelativeUri,
         StorageFile localFile)
     {
@@ -122,10 +110,7 @@ public class HttpModelDownloader : MonoBehaviour
         }
         return (downloaded);
     }
-#endif // ENABLE_WINMD_SUPPORT
-
     string BaseUriPath => $"http://{this.remoteHostIpAddress}:{this.remotePort}/";
-
     Guid modelIdentifier;
     IPAddress remoteHostIpAddress;
     int remotePort;

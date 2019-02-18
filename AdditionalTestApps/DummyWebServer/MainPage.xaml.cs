@@ -125,9 +125,11 @@ namespace DummyWebServer
         void OnNewModelMessage(object message)
         {
             var msg = message as NewModelMessage;
+
             var newModel = new RemoteModelViewModel()
             {
-                Identifier = msg.ModelIdentifier
+                Identifier = msg.ModelIdentifier,
+                RemoteHostIp = msg.ServerIPAddress
             };
             newModel.SelectedForPlayback += OnNewModelSelectedForPlayback;
 

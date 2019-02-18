@@ -119,8 +119,10 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="HttpPieces\FileStorageManager.cs" />
     <Compile Include="HttpPieces\HttpListenerContextConstraintList.cs" />
     <Compile Include="HttpPieces\HttpListenerContextExtensions.cs" />
+    <Compile Include="HttpPieces\HttpModelDownloader.cs" />
     <Compile Include="HttpPieces\StorageFolderWebServer.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace DummyWebServer
@@ -8,10 +9,22 @@ namespace DummyWebServer
     {
         public event EventHandler SelectedForPlayback;
 
+        public bool CanRecordTransforms => !this.isRecordingTransforms;
+
+        public bool CanPlayBackRecordedTransforms =>
+            !this.isRecordingTransforms && this.recordedEntries.Count > 0;
+
+        public int RecordedTransformCount =>this.recordedEntries.Count;
+
         public Guid Identifier
         {
             get => this.identifier;
             set => this.SetProperty(ref this.identifier, value);
+        }
+        public IPAddress RemoteHostIp
+        {
+            get => this.remoteHostIp;
+            set => this.SetProperty(ref this.remoteHostIp, value);
         }
         public bool IsRecordingTransforms
         {
@@ -25,12 +38,6 @@ namespace DummyWebServer
                 }
             }
         }
-        public bool CanPlayBackRecordedTransforms =>
-            !this.isRecordingTransforms && this.recordedEntries.Count > 0;
-
-        public int RecordedTransformCount =>
-            this.recordedEntries.Count;
-
         public void OnRecordTransforms()
         {
             this.IsRecordingTransforms = true;
@@ -79,8 +86,16 @@ namespace DummyWebServer
                     entry.TransformChange.Translation);
             }
         }
-        public bool CanRecordTransforms => !this.isRecordingTransforms;
+        public async Task OnRequestModelAsync()
+        {
+            var modelDownloader = new HttpModelDownloader(
+                this.Identifier,
+                this.RemoteHostIp);
+
+            await modelDownloader.DownloadModelToLocalStorageAsync();
+        }
         Guid identifier;
+        IPAddress remoteHostIp;
         bool isRecordingTransforms;
         List<RecordedEntry> recordedEntries;
         DateTime lastTransformMessageTime;
