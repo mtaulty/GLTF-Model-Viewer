@@ -6,6 +6,7 @@
 Assets/AssetStoreTools*
 UWP/
 Assets/HoloToolkit*
+Logs/
 
 # Visual Studio cache directory
 .vs/

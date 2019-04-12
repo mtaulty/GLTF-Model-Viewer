@@ -1,32 +1,38 @@
-﻿using HoloToolkit.Unity.InputModule;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityGLTF;
 using System.IO;
+using Microsoft.MixedReality.Toolkit.Input;
+using UnityEditor;
+using Microsoft.MixedReality.Toolkit;
+using System.Linq;
+using Microsoft.MixedReality.Toolkit.Physics;
+using Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
 using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class ModelController : ExtendedMonoBehaviour
+public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
 {
+    [SerializeField]
+    MixedRealityInputAction openAction;
+    [SerializeField]
+    MixedRealityInputAction removeAction;
+    [SerializeField]
+    MixedRealityInputAction resetAction;
+
+    [SerializeField]
+    GameObject parentPrefabWithInteractionConfigured;
+
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
     ModelPositioningManager ModelLoader => this.gameObject.GetComponent<ModelPositioningManager>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
-
-    static readonly string OPEN_SPEECH_TEXT = "open";
-    static readonly string RESET_SPEECH_TEXT = "reset";
-    static readonly string REMOVE_SPEECH_TEXT = "remove";
-
-#if ENABLE_WINMD_SUPPORT
-    SpeechRecognizer recognizer;
-#endif // ENABLE_WINMD_SUPPORT
 
     void Start()
     {
@@ -34,82 +40,15 @@ public class ModelController : ExtendedMonoBehaviour
         NetworkMessagingProvider.NewModelOnNetwork += this.OnNewModelFromNetwork;
         NetworkMessagingProvider.Initialise();
 
-#if ENABLE_WINMD_SUPPORT
-        this.StartSpeechCommandHandlingAsync();
-#endif // ENABLE_WINMD_SUPPORT
+        // Register this object as a global listener for events so that this object
+        // gets all the speech generated events.
+        MixedRealityToolkit.InputSystem?.Register(this.gameObject);
     }
-#if ENABLE_WINMD_SUPPORT    
-    /// <summary>
-    /// Why am I using my own speech handling rather than relying on SpeechInputSource and
-    /// SpeechInputHandler? I started using those and they worked fine.
-    /// However, I found that my speech commands would stop working across invocations of
-    /// the file open dialog. They would work *before* and *stop* after.
-    /// I spent a lot of time on this and I found that things would *work* under the debugger
-    /// but not without it.
-    /// That led me to think that this related to suspend/resume and perhaps HoloLens suspends
-    /// the app when you move to the file dialog because I notice that dialog running as its
-    /// own app on HoloLens.
-    /// I tried hard to do work with suspend/resume but I kept hitting problems and so I wrote
-    /// my own code where I try quite hard to avoid a single instance of SpeechRecognizer being
-    /// used more than once - i.e. I create it, recognise with it & throw it away each time
-    /// as this seems to *actually work* better than any other approach I tried.
-    /// I also find that SpeechRecognizer.RecognizeAsync can get into a situation where it
-    /// returns "Success" and "Rejected" at the same time & once that happens you don't get
-    /// any more recognition unless you throw it away and so that's behind my approach.
-    /// </summary>
-    async void StartSpeechCommandHandlingAsync()
+    protected virtual void OnDisable()
     {
-        while (true)
-        {
-            var command = await this.SelectSpeechCommandAsync(
-                OPEN_SPEECH_TEXT, 
-                RESET_SPEECH_TEXT, 
-                REMOVE_SPEECH_TEXT);
-
-            if (string.Compare(OPEN_SPEECH_TEXT, command, true) == 0)
-            {
-                this.OnOpenSpeechCommand();
-            }
-            else if (string.Compare(RESET_SPEECH_TEXT, command, true) == 0)
-            {
-                this.OnResetSpeechCommand();
-            }
-            else if (string.Compare(REMOVE_SPEECH_TEXT, command, true) == 0)
-            {
-                this.OnRemoveSpeechCommand();
-            }
-            else
-            {
-                // Just being paranoid in case we start spinning around here
-                // My expectatation is that this code should never/rarely
-                // execute.
-                await Task.Delay(250);
-            }
-        }
+        MixedRealityToolkit.InputSystem?.Unregister(gameObject);
     }
-    async Task<string> SelectSpeechCommandAsync(params string[] commands)
-    {
-        string command = string.Empty;
-
-        using (var recognizer = new SpeechRecognizer())
-        {
-            recognizer.Constraints.Add(new SpeechRecognitionListConstraint(commands));
-            await recognizer.CompileConstraintsAsync();
-
-            var result = await recognizer.RecognizeAsync();
-
-            if ((result.Status == SpeechRecognitionResultStatus.Success) &&
-                ((result.Confidence == SpeechRecognitionConfidence.Medium) ||
-                 (result.Confidence == SpeechRecognitionConfidence.High)))
-            {
-                command = result.Text;
-            }                    
-        }
-        return (command);
-    }
-
-#endif // ENABLE_WINMD_SUPPORT
-    async void OnOpenSpeechCommand()
+    public async void OnOpenSpeechCommand()
     {
         var filePath = await this.PickFileFrom3DObjectsFolderAsync();
 
@@ -121,17 +60,16 @@ public class ModelController : ExtendedMonoBehaviour
             {
                 // Our new model comes out of the file load.
                 var newModel = modelDetails.GameObject;
-                
+
                 // Give the new model a new identity.
                 var modelIdentifier = newModel.AddComponent<ModelIdentifier>();
 
-                // Make it focusable.
-                newModel.AddComponent<FocusWatcher>();
-
-                // Add positioning.
+                // Add positioning and parent.
                 var positioningManager = newModel.AddComponent<ModelPositioningManager>();
-                positioningManager.InitialiseSizeAndPositioning(
-                    this.RootParentProvider.RootParent);
+
+                positioningManager.CreateAndPositionParentAndModel(
+                    this.RootParentProvider.RootParent,
+                    this.parentPrefabWithInteractionConfigured);
 
                 // Add manipulations to the new model so it can be moved around.
                 var manipManager = newModel.AddComponent<ModelUpdatesManager>();
@@ -146,7 +84,7 @@ public class ModelController : ExtendedMonoBehaviour
                 // Write out all the files that were part of loading this model
                 // into a file in case they need sharing in future.
                 await FileStorageManager.StoreFileListAsync(
-                    (Guid)modelIdentifier.Identifier, modelDetails.FileLoader);
+                    (Guid)modelIdentifier.Identifier, modelDetails.RelativeLoadedFilePaths);
 
                 // And export the anchor into the file system as well.
                 // TODO: this will currently wait "for ever" for the world anchor to be
@@ -170,29 +108,57 @@ public class ModelController : ExtendedMonoBehaviour
             }
         }
     }
-    void OnResetSpeechCommand()
+    IEnumerable<T> GetFocusedObjectWithChildComponent<T>() where T : MonoBehaviour
     {
-        if (FocusWatcher.HasFocusedObject)
+        // TODO: I need to figure whether this is the right way to do things. Is it right
+        // to get all the active pointers, ask them what is focused & then use that as
+        // the list of focused objects?
+        var pointers = MixedRealityToolkit.InputSystem.FocusProvider.GetPointers<IMixedRealityPointer>()
+            .Where(p => p.IsActive);
+
+        foreach (var pointer in pointers)
         {
-            var focusedObject = FocusWatcher.FocusedObject;
+            FocusDetails focusDetails;
 
-            this.AudioManager.PlayClip(AudioClipType.Resetting);
+            if (MixedRealityToolkit.InputSystem.FocusProvider.TryGetFocusDetails(
+                pointer, out focusDetails))
+            {
+                var component = focusDetails.Object?.GetComponentInChildren<T>();
 
-            focusedObject.GetComponent<ModelPositioningManager>().ReturnModelToLoadedPosition();
+                if (component != null)
+                {
+                    yield return component;
+                }
+            }
         }
     }
-    void OnRemoveSpeechCommand()
+    public void OnResetSpeechCommand()
     {
-        if (FocusWatcher.HasFocusedObject)
-        {
-            var focusedObject = FocusWatcher.FocusedObject;
+        bool first = true;
 
+        var modelPositioningManagers = this.GetFocusedObjectWithChildComponent<ModelPositioningManager>();
+
+        foreach (var modelPositioningManager in modelPositioningManagers)
+        {
+            if (first)
+            {
+                this.AudioManager.PlayClip(AudioClipType.Resetting);
+                first = !first;
+            }
+            modelPositioningManager.ReturnModelToLoadedPosition();
+        }
+    }
+    public void OnRemoveSpeechCommand()
+    {
+        var modelIdentifiers = this.GetFocusedObjectWithChildComponent<ModelIdentifier>();
+
+        foreach (var modelIdentifier in modelIdentifiers)
+        {
             // Send network message saying we have got rid of this object in case others
             // are displaying it.
-            var modelIdentifier = focusedObject.GetComponent<ModelIdentifier>();
-            NetworkMessagingProvider.SendDeletedModelMessage(modelIdentifier.Identifier);
+            NetworkMessagingProvider.SendDeletedModelMessage((Guid)modelIdentifier.Identifier);
 
-            focusedObject.GetComponent<ModelUpdatesManager>().Destroy();
+            modelIdentifier.GetComponent<ModelPositioningManager>().Destroy();       
         }
     }
     void ShowBusy(string message)
@@ -210,8 +176,7 @@ public class ModelController : ExtendedMonoBehaviour
     {
         var modelFilePath = string.Empty;
 
-        var modelDownloader = new HttpModelDownloader(
-            modelIdentifier, ipAddress);
+        var modelDownloader = new HttpModelDownloader(modelIdentifier, ipAddress);
 
         try
         {
@@ -234,6 +199,7 @@ public class ModelController : ExtendedMonoBehaviour
         {
             this.ShowBusy("Downloading model files...");
 
+            // Grab all the models files over the network from the original device.
             var modelFilePath = await this.DownloadModelToLocalStorageAsync(
                 e.ModelIdentifier, e.IPAddress);
 
@@ -251,13 +217,14 @@ public class ModelController : ExtendedMonoBehaviour
 
                 // Add positioning.
                 var positioningManager = newModel.AddComponent<ModelPositioningManager>();
-                positioningManager.InitialiseSizeAndPositioning(
-                    this.RootParentProvider.RootParent);
 
-                // And updates (this handles incoming transformation messages along
-                // with removal messages too)
+                positioningManager.CreateAndPositionParentAndModel(
+                    this.RootParentProvider.RootParent,
+                    this.parentPrefabWithInteractionConfigured);
+
+                // And updates (this handles incoming transformation messages along with removal messages too)
                 newModel.AddComponent<ModelUpdatesManager>();
-                
+
                 // With this model coming from the network, we want to import
                 // the anchor onto the parent to put it into the same place within
                 // the space as on the device it originated from.
@@ -299,8 +266,12 @@ public class ModelController : ExtendedMonoBehaviour
                 this.AudioManager.PlayClipOnceOnly(AudioClipType.PickFileFrom3DObjectsFolder);
             }
         } while (filePath == string.Empty);
-
-#endif // ENABLE_WINMD_SUPPORT
+#else
+        filePath = EditorUtility.OpenFilePanelWithFilters(
+            "Select GLTF File",
+            string.Empty,
+            new string[] { "GLTF Files", "gltf,glb", "All Files", "*" });
+#endif 
 
         return (filePath);
     }
@@ -312,19 +283,12 @@ public class ModelController : ExtendedMonoBehaviour
 
         try
         {
-            modelDetails = new ImportedModelInfo(
-                new RecordingFileLoader(Path.GetDirectoryName(filePath)));
+            var gltfObject = await GltfUtility.ImportGltfObjectFromPathAsync(filePath);
 
-            GLTFSceneImporter importer = new GLTFSceneImporter(
-                Path.GetFileName(filePath), modelDetails.FileLoader);
-
-            importer.Collider = GLTFSceneImporter.ColliderType.Box;
-
-            await base.RunCoroutineAsync(
-                importer.LoadScene(
-                    -1,
-                    gameObject => modelDetails.GameObject = gameObject)
-            );
+            if (gltfObject != null)
+            {
+                modelDetails = new ImportedModelInfo(filePath, gltfObject);                
+            }
         }
         catch
         {
@@ -341,5 +305,21 @@ public class ModelController : ExtendedMonoBehaviour
             this.AudioManager?.PlayClip(AudioClipType.LoadError);
         }
         return (modelDetails);
+    }
+    public void OnSpeechKeywordRecognized(SpeechEventData eventData)
+    {
+        // TODO: Can improve this.
+        if (eventData.Command.Action == this.openAction)
+        {
+            this.OnOpenSpeechCommand();
+        }
+        else if (eventData.Command.Action == this.removeAction)
+        {
+            this.OnRemoveSpeechCommand();
+        }
+        else if (eventData.Command.Action == this.resetAction)
+        {
+            this.OnResetSpeechCommand();
+        }
     }
 }

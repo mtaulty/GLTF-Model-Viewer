@@ -1,5 +1,5 @@
-﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
-using HoloToolkit.Unity.UX;
+﻿using Microsoft.MixedReality.Toolkit.Input;
+using Microsoft.MixedReality.Toolkit.UI;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,31 +7,55 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.WSA;
-using UnityGLTF;
 
-public class ModelPositioningManager : ExtendedMonoBehaviour
+public class ModelPositioningManager : MonoBehaviour
 {
     Vector3? initialScaleFactor;
-
     Transform initialLookPoint;
+
+    public GameObject AnchoredParent { get; private set; }
+    public GameObject InteractableParent { get; private set; }
 
     public void ReturnModelToLoadedPosition()
     {
-        this.gameObject.transform.localPosition = Vector3.zero;
-        this.gameObject.transform.localRotation = Quaternion.identity;
-        this.gameObject.transform.localScale = (Vector3)this.initialScaleFactor;
-        this.gameObject.transform.LookAt(this.initialLookPoint);
+        this.InteractableParent.transform.localPosition = Vector3.zero;
+        this.InteractableParent.transform.localRotation = Quaternion.identity;
+        this.InteractableParent.transform.localScale = (Vector3)this.initialScaleFactor;
+        this.InteractableParent.transform.LookAt(this.initialLookPoint);
     }
-    public void InitialiseSizeAndPositioning(GameObject parentObject)
+    public void Destroy()
     {
-        // Move the parent to be down the gaze vector.
-        this.CreateAndPositionParentAndModel(parentObject);
+        Destroy(this.AnchoredParent.gameObject);
+    }
+    public void CreateAndPositionParentAndModel(
+        GameObject sceneParentObject,
+        GameObject configuredInteractionPrefab)
+    {
+        // We have a parent for the world anchor which lives under the 'root' parent in the scene.
+        this.AnchoredParent = new GameObject("Anchored Parent");
+        this.AnchoredParent.transform.SetParent(sceneParentObject.transform, false);
 
-        // Size the new model so that it displays reasonably.
-        this.SizeModel();
-    }
-    void CreateAndPositionParentAndModel(GameObject parentObject)
-    {
+        // We have a parent which has the pre-configured interactions on it etc.
+        // This comes with a BoxCollider, NearInteractionGrab and BoundingBox already on it.
+        this.InteractableParent = GameObject.Instantiate(configuredInteractionPrefab);
+        this.InteractableParent.transform.SetParent(this.AnchoredParent.transform, false);
+        
+        // Try to work out the size of the rendered model in local co-ords.
+        var renderBounds = this.CalculateRendererBounds();
+
+        // Size the model so as to scale it to be approx 0.5m in the largest direction.
+        this.SizeModel(renderBounds);
+
+        var boxCollider = this.InteractableParent.GetComponent<BoxCollider>();
+        var nearGrabbable = this.InteractableParent.GetComponent<NearInteractionGrabbable>();
+        var manipulationHandler = this.InteractableParent.GetComponent<ManipulationHandler>();
+        boxCollider.enabled = nearGrabbable.enabled = manipulationHandler.enabled = false;
+
+        // Try and set the position and size of the BoxCollider before we mess with
+        // any other transformations.
+        boxCollider.center = this.gameObject.transform.InverseTransformPoint(renderBounds.center);
+        boxCollider.size = this.gameObject.transform.InverseTransformVector(renderBounds.size);
+
         // Move the parent to be approx 3m down the user's gaze.
         var parentPosition =
             Camera.main.transform.position +
@@ -40,74 +64,57 @@ public class ModelPositioningManager : ExtendedMonoBehaviour
         // Patch up the y-value to try and line it up with the head position.
         parentPosition.y = Camera.main.transform.position.y;
 
-        // Move the parent to this new position. From there, the parent doesn't
-        // get moved, scaled, rotated, only the model (child) will.
-        var parent = new GameObject();
-
-        // this parent is a child of our root for content within the scene.
-        parent.transform.SetParent(parentObject.transform, false);
-
         // move to parent to be on the gaze vector from the camera
-        parent.transform.position = parentPosition;
+        this.AnchoredParent.transform.position = parentPosition;
 
         // make the parent look at the camera
         this.initialLookPoint = Camera.main.transform;
-        parent.transform.LookAt(this.initialLookPoint);
+        this.AnchoredParent.transform.LookAt(this.initialLookPoint);
 
         // our model is now a child of the newly created parent
-        this.gameObject.transform.SetParent(parent.transform, false);
+        this.gameObject.transform.SetParent(this.InteractableParent.transform, false);
 
         // move the model within the parent to be at the origin
+        this.InteractableParent.transform.localPosition = Vector3.zero;
         this.gameObject.transform.localPosition = Vector3.zero;
     }
-    void SizeModel()
+    void SizeModel(Bounds rendererBounds)
     {
-        // Try to figure out how big the object is (this turns out to be
-        // more of an art than a science :-S).
-        var bounds = CalculateMeshRendererSizes(this.gameObject.transform);
-
         // what's the max extent here? 
-        if (bounds.HasValue)
-        {
-            var maxDimension = Mathf.Max(
-                bounds.Value.size.x, bounds.Value.size.y, bounds.Value.size.z);
+        var maxDimension = Mathf.Max(
+            rendererBounds.size.x, rendererBounds.size.y, rendererBounds.size.z);
 
-            // what the scale factor we need then (extent is half the size of the box).
-            var scaleFactor = MODEL_START_SIZE / maxDimension;
+        // what the scale factor we need then (extent is half the size of the box).
+        var scaleFactor = MODEL_START_SIZE / maxDimension;
 
-            // scale it.
-            this.gameObject.transform.localScale = Vector3.one * scaleFactor;
-        }
+        // scale it.
+        this.InteractableParent.transform.localScale = Vector3.one * scaleFactor;
+
         // record it so that we can put it back on the 'reset' command.
-        this.initialScaleFactor = this.gameObject.transform.localScale;
+        this.initialScaleFactor = this.InteractableParent.transform.localScale;
     }
-    static Bounds? CalculateMeshRendererSizes(Transform objectTransform)
+    Bounds CalculateRendererBounds()
     {
-        var thisFilter = objectTransform.GetComponent<Renderer>();
-        var childFilters = objectTransform.GetComponentsInChildren<Renderer>(true).ToList();
+        var currentRenderer = this.gameObject.GetComponent<Renderer>();
+        Bounds? bounds = null;
 
-        if (thisFilter != null)
+        if (currentRenderer != null)
         {
-            childFilters.Insert(0, thisFilter);
+            bounds = currentRenderer.bounds;
         }
-        Bounds? result = null;
-
-        foreach (var filter in childFilters)
+        foreach (var renderer in this.gameObject.transform.GetComponentsInChildren<Renderer>())
         {
-            var bounds = filter.bounds;
-
-            if (result == null)
+            if (bounds == null)
             {
-                result = bounds;
+                bounds = renderer.bounds;
             }
             else
             {
-                result.Value.Encapsulate(bounds.min);
-                result.Value.Encapsulate(bounds.max);
+                bounds.Value.Encapsulate(renderer.bounds);
             }
         }
-        return result;
+        return (bounds.Value);
     }
     static readonly float MODEL_START_SIZE = 0.5f;
-    static readonly float MODEL_START_DISTANCE = 3.0f;
+    static readonly float MODEL_START_DISTANCE = 1.5f;
 }

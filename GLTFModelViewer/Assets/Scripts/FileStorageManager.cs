@@ -32,7 +32,7 @@ public static class FileStorageManager
         $"{AppSubFolderName}/{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
     public static async Task StoreFileListAsync(Guid modelIdentifier,
-        RecordingFileLoader fileRecorder)
+        IReadOnlyList<string> relativeLoadedFilePaths)
     {
 #if ENABLE_WINMD_SUPPORT
         var baseLoadPath = fileRecorder.BaseDirectoryPath.ToLower().TrimEnd('\\');
@@ -42,7 +42,7 @@ public static class FileStorageManager
             base3dObjectsPath.Length,
             baseLoadPath.Length - base3dObjectsPath.Length);
 
-        var relativePaths = fileRecorder.RelativeLoadedFilePaths.Select(
+        var relativePaths = relativeLoadedFilePaths.Select(
             path => Path.Combine("\\", relativePath, path).Replace('\\', '/'));
 
         var file = await GetSubFolderFileAsync(

@@ -1,23 +1,13 @@
-﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
-using HoloToolkit.Unity.UX;
+﻿using Microsoft.MixedReality.Toolkit.Input;
+using Microsoft.MixedReality.Toolkit.UI;
 using System;
 using UnityEngine;
 
 public class ModelUpdatesManager : MonoBehaviour
 {
-    [SerializeField]
-    BoundingBox boundingBoxPrefab;
-
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
+    ModelPositioningManager ModelPositioningManager => this.gameObject.GetComponent<ModelPositioningManager>();
 
-    internal void Destroy()
-    {
-        // Get rid of the parent.
-        Destroy(this.gameObject.transform.parent);
-
-        // Get rid of the object itself.
-        Destroy(this.gameObject);
-    }
     void Start()
     {
         NetworkMessagingProvider.TransformChange += this.OnTransformChangeMessage;
@@ -34,7 +24,7 @@ public class ModelUpdatesManager : MonoBehaviour
             this.ModelIdentifier.Identifier == e.ModelIdentifier)
         {
             // This model has been deleted remotely, we need to get rid of it.
-            this.Destroy();
+            ModelPositioningManager.Destroy();
         }
     }
     void OnTransformChangeMessage(object sender, TransformChangeEventArgs e)
@@ -44,20 +34,19 @@ public class ModelUpdatesManager : MonoBehaviour
             (!this.isMulticastingTransforms)) // last clasuse should be redundant really
         {
             // We're interested...
-            this.gameObject.transform.localScale = e.Scale;
-            this.gameObject.transform.localRotation = e.Rotation;
-            this.gameObject.transform.localPosition = e.Translation;
+            ModelPositioningManager.InteractableParent.transform.localScale = e.Scale;
+            ModelPositioningManager.InteractableParent.transform.localRotation = e.Rotation;
+            ModelPositioningManager.InteractableParent.transform.localPosition = e.Translation;
         }
     }
     public void AddHandManipulationsToModel()
     {
         this.isMulticastingTransforms = true;
 
-        // Now need to add behaviours for rotate, transform, scale, etc.
-        var twoHandManips = this.gameObject.AddComponent<TwoHandManipulatable>();
-        twoHandManips.BoundingBoxPrefab = this.boundingBoxPrefab;
-        twoHandManips.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
-        twoHandManips.RotationConstraint = AxisConstraint.None;
+        var boxCollider = ModelPositioningManager.InteractableParent.GetComponent<BoxCollider>();
+        var nearGrabbable = ModelPositioningManager.InteractableParent.GetComponent<NearInteractionGrabbable>();
+        var manipulationHandler = ModelPositioningManager.InteractableParent.GetComponent<ManipulationHandler>();
+        boxCollider.enabled = nearGrabbable.enabled = manipulationHandler.enabled = true;
     }
     void Update()
     {
@@ -65,7 +54,7 @@ public class ModelUpdatesManager : MonoBehaviour
         // different gameObject which is provided by the CurrentModelProvider.
         if (this.isMulticastingTransforms)
         {
-            var transform = this.gameObject.transform;
+            var transform = ModelPositioningManager.InteractableParent.transform;
 
             if (!this.currentRotation.HasValue ||
                 !this.currentRotation.Value.EqualToTolerance(transform.localRotation, ROTATION_TOLERANCE) ||

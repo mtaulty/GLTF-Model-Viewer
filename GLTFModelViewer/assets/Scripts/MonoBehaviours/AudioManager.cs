@@ -57,17 +57,20 @@ public class AudioManager : MonoBehaviour
     {
 #if ENABLE_WINMD_SUPPORT
         bool play = !this.HasClipPlayedPreviously(clipType);
+#else
+        bool play = true;
+#endif 
 
         if (play)
         {
             var clipName = clipType.ToString();
+
+#if ENABLE_WINMD_SUPPORT
             ApplicationData.Current.LocalSettings.Values[clipName] = true;
+#endif
             this.PlayClip(clipType);
         }
         return (play);
-#else
-        throw new NotImplementedException();
-#endif 
     }
     void Start()
     {
