@@ -1,5 +1,4 @@
-﻿using HoloToolkit.UX.Progress;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ProgressRingManager : MonoBehaviour
 {
@@ -7,16 +6,18 @@ public class ProgressRingManager : MonoBehaviour
     {
         if (!this.isOpen)
         {
+            // MIKET: to do - we have no implementation yet.
             this.isOpen = true;
-            ProgressIndicator.Instance.Open(
-                    IndicatorStyleEnum.AnimatedOrbs,
-                    ProgressStyleEnum.None,
-                    ProgressMessageStyleEnum.Visible,
-                    message);
+            //ProgressIndicator.Instance.Open(
+            //        IndicatorStyleEnum.AnimatedOrbs,
+            //        ProgressStyleEnum.None,
+            //        ProgressMessageStyleEnum.Visible,
+            //        message);
         }
         else
         {
-            ProgressIndicator.Instance.SetMessage(message);
+            // MIKET: to do - we have no implementation yet.
+            //ProgressIndicator.Instance.SetMessage(message);
         }
     }
     public void Hide()
@@ -24,7 +25,9 @@ public class ProgressRingManager : MonoBehaviour
         if (this.isOpen)
         {
             this.isOpen = false;
-            ProgressIndicator.Instance.Close();
+
+            // MIKET: to do - we have no implementation yet.
+            // ProgressIndicator.Instance.Close();
         }
     }
     bool isOpen;
