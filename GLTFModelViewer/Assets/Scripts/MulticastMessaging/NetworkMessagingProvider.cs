@@ -1,133 +1,132 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using System.Net;
-using System;
-
-#if ENABLE_WINMD_SUPPORT
+﻿using Microsoft.MixedReality.Toolkit;
+using Microsoft.MixedReality.Toolkit.Utilities;
 using MulticastMessaging;
 using MulticastMessaging.Messages;
+using System;
+using UnityEngine;
 
-#endif // ENABLE_WINMD_SUPPORT
-
-internal static class NetworkMessagingProvider 
+namespace MulticastMessaging
 {
-    internal static event EventHandler<NewModelOnNetworkEventArgs> NewModelOnNetwork;
-    internal static event EventHandler<TransformChangeEventArgs> TransformChange;
-    internal static event EventHandler<DeletedModelOnNetworkEventArgs> DeletedModelOnNetwork;
-
-    // Note - this defines a dependency between this script and the IP Address Provider
-    // being created before we arrive here.
-    internal static void Initialise()
+    [MixedRealityExtensionService(SupportedPlatforms.WindowsUniversal)]
+    public class NetworkMessagingProvider : BaseExtensionService, INetworkMessagingProvider
     {
-#if ENABLE_WINMD_SUPPORT
+        public event EventHandler<NewModelOnNetworkEventArgs> NewModelOnNetwork;
+        public event EventHandler<TransformChangeEventArgs> TransformChange;
+        public event EventHandler<DeletedModelOnNetworkEventArgs> DeletedModelOnNetwork;
 
-        if (IPAddressProvider.HasIpAddress)
+        public NetworkMessagingProvider(
+              IMixedRealityServiceRegistrar registrar,
+              string name,
+              uint priority,
+              BaseMixedRealityProfile profile) : base(registrar, name, priority, profile)
         {
-            messageRegistrar = new MessageRegistrar();
 
-            newModelMessageKey =
-                messageRegistrar.RegisterMessageFactory<NewModelMessage>(
-                    () => new NewModelMessage());
-
-            transformMessageKey =
-                messageRegistrar.RegisterMessageFactory<TransformChangeMessage>(
-                    () => new TransformChangeMessage());
-
-            deleteMessageKey =
-                messageRegistrar.RegisterMessageFactory<DeleteModelMessage>(
-                    () => new DeleteModelMessage());
-
-            messageRegistrar.RegisterMessageHandler<NewModelMessage>(
-                OnNewModelOnNetwork);
-
-            messageRegistrar.RegisterMessageHandler<TransformChangeMessage>(
-                OnTransformChangeOnNetwork);
-
-            messageRegistrar.RegisterMessageHandler<DeleteModelMessage>(
-                OnDeletedModelOnNetwork);
-
-            messageService = new MessageService(messageRegistrar);
-
-            messageService.Open();
         }
-#endif // ENABLE_WINMD_SUPPORT
-    }
-    internal static void SendDeletedModelMessage(Guid identifier)
-    {
-#if ENABLE_WINMD_SUPPORT
-        if (IPAddressProvider.HasIpAddress)
+        // Note - this defines a dependency between this script and the IP Address Provider
+        // being created before we arrive here.
+        public void Initialise()
         {
-            var message = (DeleteModelMessage)messageRegistrar.CreateMessage(deleteMessageKey);
-            message.ModelIdentifier = identifier;
-            messageService.Send(message);
+            if (IPAddressProvider.HasIpAddress)
+            {
+                messageRegistrar = new MessageRegistrar();
+
+                newModelMessageKey =
+                    messageRegistrar.RegisterMessageFactory<NewModelMessage>(
+                        () => new NewModelMessage());
+
+                transformMessageKey =
+                    messageRegistrar.RegisterMessageFactory<TransformChangeMessage>(
+                        () => new TransformChangeMessage());
+
+                deleteMessageKey =
+                    messageRegistrar.RegisterMessageFactory<DeleteModelMessage>(
+                        () => new DeleteModelMessage());
+
+                messageRegistrar.RegisterMessageHandler<NewModelMessage>(
+                    OnNewModelOnNetwork);
+
+                messageRegistrar.RegisterMessageHandler<TransformChangeMessage>(
+                    OnTransformChangeOnNetwork);
+
+                messageRegistrar.RegisterMessageHandler<DeleteModelMessage>(
+                    OnDeletedModelOnNetwork);
+
+                var messageService = MixedRealityToolkit.Instance.GetService<IMessageService>();
+                messageService.MessageRegistrar = messageRegistrar;
+
+                messageService.Open();
+            }
         }
-#endif // ENABLE_WINMD_SUPPORT
-    }
-    internal static void SendNewModelMessage(Guid identifier)
-    {
-#if ENABLE_WINMD_SUPPORT
-        if (IPAddressProvider.HasIpAddress)
+        public void SendDeletedModelMessage(Guid identifier)
         {
-            var message = (NewModelMessage)messageRegistrar.CreateMessage(newModelMessageKey);
-            message.ServerIPAddress = IPAddressProvider.IPAddress;
-            message.ModelIdentifier = identifier;
-            messageService.Send(message);
-        }
-#endif // ENABLE_WINMD_SUPPORT
-    }
-    internal static void SendTransformChangeMessage(Guid identifier,
-        Vector3 scale, Quaternion rotation, Vector3 translation)
-    {
-#if ENABLE_WINMD_SUPPORT
+            if (IPAddressProvider.HasIpAddress)
+            {
+                var message = (DeleteModelMessage)messageRegistrar.CreateMessage(deleteMessageKey);
+                message.ModelIdentifier = identifier;
 
-        if (IPAddressProvider.HasIpAddress)
+                var messageService = MixedRealityToolkit.Instance.GetService<IMessageService>();
+                messageService.Send(message);
+            }
+        }
+        public void SendNewModelMessage(Guid identifier)
         {
-            var message = (TransformChangeMessage)messageRegistrar.CreateMessage(transformMessageKey);
-            message.ModelIdentifier = identifier;
-            message.Scale = scale;
-            message.Rotation = rotation;
-            message.Translation = translation;
-            messageService.Send(message);
+            if (IPAddressProvider.HasIpAddress)
+            {
+                var message = (NewModelMessage)messageRegistrar.CreateMessage(newModelMessageKey);
+                message.ServerIPAddress = IPAddressProvider.IPAddress;
+                message.ModelIdentifier = identifier;
+                var messageService = MixedRealityToolkit.Instance.GetService<IMessageService>();
+                messageService.Send(message);
+            }
         }
+        public void SendTransformChangeMessage(Guid identifier,
+            Vector3 scale, Quaternion rotation, Vector3 translation)
+        {
+            if (IPAddressProvider.HasIpAddress)
+            {
+                var message = (TransformChangeMessage)messageRegistrar.CreateMessage(transformMessageKey);
+                message.ModelIdentifier = identifier;
+                message.Scale = scale;
+                message.Rotation = rotation;
+                message.Translation = translation;
 
-#endif // ENABLE_WINMD_SUPPORT
+                var messageService = MixedRealityToolkit.Instance.GetService<IMessageService>();
+                messageService.Send(message);
+            }
+        }
+        void OnNewModelOnNetwork(object obj)
+        {
+            NewModelMessage message = obj as NewModelMessage;
+
+            NewModelOnNetwork?.Invoke(
+                null, new NewModelOnNetworkEventArgs(message.ModelIdentifier, message.ServerIPAddress));
+        }
+        void OnTransformChangeOnNetwork(object obj)
+        {
+            TransformChangeMessage message = obj as TransformChangeMessage;
+
+            // TODO: maybe stop allocating so many of these if we're going to do this at 60fps.
+            TransformChange?.Invoke(
+                null,
+                new TransformChangeEventArgs(
+                    message.ModelIdentifier,
+                    message.Scale,
+                    message.Rotation,
+                    message.Translation
+                )
+            );
+        }
+        void OnDeletedModelOnNetwork(object obj)
+        {
+            DeleteModelMessage message = obj as DeleteModelMessage;
+
+            DeletedModelOnNetwork?.Invoke(
+                null, new DeletedModelOnNetworkEventArgs(message.ModelIdentifier));
+        }
+        MessageTypeKey newModelMessageKey;
+        MessageTypeKey transformMessageKey;
+        MessageTypeKey deleteMessageKey;
+        MessageService messageService;
+        MessageRegistrar messageRegistrar;
     }
-
-#if ENABLE_WINMD_SUPPORT
-    static void OnNewModelOnNetwork(object obj)
-    {
-        NewModelMessage message = obj as NewModelMessage;
-
-        NewModelOnNetwork?.Invoke(
-            null, new NewModelOnNetworkEventArgs(message.ModelIdentifier, message.ServerIPAddress));
-    }
-    static void OnTransformChangeOnNetwork(object obj)
-    {
-        TransformChangeMessage message = obj as TransformChangeMessage;
-
-        // TODO: maybe stop allocating so many of these if we're going to do this at 60fps.
-        TransformChange?.Invoke(
-            null,
-            new TransformChangeEventArgs(
-                message.ModelIdentifier,
-                message.Scale,
-                message.Rotation,
-                message.Translation
-            )
-        );
-    }
-    static void OnDeletedModelOnNetwork(object obj)
-    {
-        DeleteModelMessage message = obj as DeleteModelMessage;
-
-        DeletedModelOnNetwork?.Invoke(
-            null, new DeletedModelOnNetworkEventArgs(message.ModelIdentifier));
-    }
-    static MessageTypeKey newModelMessageKey;
-    static MessageTypeKey transformMessageKey;
-    static MessageTypeKey deleteMessageKey;
-    static MessageService messageService;
-    static MessageRegistrar messageRegistrar;
-#endif // ENABLE_WINMD_SUPPORT
 }

@@ -32,17 +32,20 @@ public static class FileStorageManager
         $"{AppSubFolderName}/{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
     public static async Task StoreFileListAsync(Guid modelIdentifier,
-        IReadOnlyList<string> relativeLoadedFilePaths)
+        ImportedModelInfo importedModelInfo)
     {
+        // TODO: Need to figure out this use of the fileRecorder, think it's 
+        // perhaps just needing the ImportedModelInfo info to complete
+        // the work here. 17th May 2019.
 #if ENABLE_WINMD_SUPPORT
-        var baseLoadPath = fileRecorder.BaseDirectoryPath.ToLower().TrimEnd('\\');
+        var baseLoadPath = importedModelInfo.BaseDirectoryPath.ToLower().TrimEnd('\\');
         var base3dObjectsPath = KnownFolders.Objects3D.Path.ToLower().TrimEnd('\\');
 
         var relativePath = baseLoadPath.Substring(
             base3dObjectsPath.Length,
             baseLoadPath.Length - base3dObjectsPath.Length);
 
-        var relativePaths = relativeLoadedFilePaths.Select(
+        var relativePaths = importedModelInfo.RelativeLoadedFilePaths.Select(
             path => Path.Combine("\\", relativePath, path).Replace('\\', '/'));
 
         var file = await GetSubFolderFileAsync(

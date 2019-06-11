@@ -1,4 +1,4 @@
-﻿#if ENABLE_WINMD_SUPPORT
+﻿//#if ENABLE_WINMD_SUPPORT
 namespace MulticastMessaging
 {
     using System.Collections.Generic;
@@ -6,8 +6,10 @@ namespace MulticastMessaging
     using System.Net;
     using System.Net.NetworkInformation;
     using System.Net.Sockets;
+#if ENABLE_WINMD_SUPPORT
     using Windows.Networking.Connectivity;
     using Windows.Networking;
+#endif // ENABLE_WINMD_SUPPORT
 
     public enum AddressFamilyType
     {
@@ -24,6 +26,9 @@ namespace MulticastMessaging
             bool wifiOnly,
             AddressFamilyType addressFamily = AddressFamilyType.IP4)
         {
+            List<string> addresses = null;
+
+#if ENABLE_WINMD_SUPPORT
             var profiles = NetworkInformation.GetConnectionProfiles();
 
             var connectedAdapterIds = NetworkInformation.GetConnectionProfiles()
@@ -35,7 +40,7 @@ namespace MulticastMessaging
                     p => p.NetworkAdapter.NetworkAdapterId
                 );
 
-            var addresses = NetworkInformation.GetHostNames()
+            addresses = NetworkInformation.GetHostNames()
                 .Where(
                         name =>
                             (name.IPInformation != null) &&
@@ -48,12 +53,17 @@ namespace MulticastMessaging
                 )
                 .ToList();
 
+#endif // ENABLE_WINMD_SUPPORT
+
             return (addresses);
         }
+#if ENABLE_WINMD_SUPPORT
         static HostNameType AddressTypeToHostNameType(AddressFamilyType type)
         {
             return (type == AddressFamilyType.IP4 ? HostNameType.Ipv4 : HostNameType.Ipv6);
         }
+#endif // ENABLE_WINMD_SUPPORT
+
         static bool IsNetworkCandidate(NetworkInterface iface,
             bool wifiOnly, bool excludeVirtualNames)
         {
@@ -100,4 +110,4 @@ namespace MulticastMessaging
         static readonly string VIRTUAL_NETWORK = "virtual";
     }
 }
-#endif // ENABLE_WINMD_SUPPORT
+// #endif // ENABLE_WINMD_SUPPORT

@@ -35,5 +35,7 @@ internal static class IPAddressProvider
         }            
     }
     static bool initialised;
+#pragma warning disable 0649
     static IPAddress ipAddress;
+#pragma warning restore 0649
 }

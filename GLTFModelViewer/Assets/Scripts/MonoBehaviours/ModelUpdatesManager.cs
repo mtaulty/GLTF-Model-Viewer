@@ -1,5 +1,7 @@
-﻿using Microsoft.MixedReality.Toolkit.Input;
+﻿using Microsoft.MixedReality.Toolkit;
+using Microsoft.MixedReality.Toolkit.Input;
 using Microsoft.MixedReality.Toolkit.UI;
+using MulticastMessaging;
 using System;
 using UnityEngine;
 
@@ -7,6 +9,7 @@ public class ModelUpdatesManager : MonoBehaviour
 {
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
     ModelPositioningManager ModelPositioningManager => this.gameObject.GetComponent<ModelPositioningManager>();
+    INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
 
     void Start()
     {

@@ -15,7 +15,7 @@ public static class FileStorageManager
     static string GetWorldAnchorFileName(Guid modelIdentifier) =>
         $"{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
-    static string GetFileListFileName(Guid modelIdentifier) =>
+    public static string GetFileListFileName(Guid modelIdentifier) =>
         $"{modelIdentifier}{FILE_LIST_FILE_EXTENSION}";
 
     public static string GetFileListRelativeUri(Guid modelIdentifier)

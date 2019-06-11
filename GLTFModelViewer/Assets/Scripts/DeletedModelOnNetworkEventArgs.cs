@@ -1,8 +1,4 @@
-﻿using System.Net;
-using System;
-
-#if ENABLE_WINMD_SUPPORT
-#endif // ENABLE_WINMD_SUPPORT
+﻿using System;
 
 public class DeletedModelOnNetworkEventArgs : EventArgs
 {

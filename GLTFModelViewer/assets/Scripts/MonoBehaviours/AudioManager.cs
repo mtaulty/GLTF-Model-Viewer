@@ -28,11 +28,13 @@ public class AudioClipEntry
 }
 public class AudioManager : MonoBehaviour
 {
+#pragma warning disable 0649
     [SerializeField]
     AudioSource audioSource;
 
     [SerializeField]
     AudioClipEntry[] audioClips;
+#pragma warning restore 0649
 
     public void PlayClip(AudioClipType clipType)
     {
@@ -79,5 +81,4 @@ public class AudioManager : MonoBehaviour
             this.PlayClip(AudioClipType.WelcomeBack);
         }
     }
-    readonly string FIRST_RUN_KEY_NAME = "FirstRun";
 }

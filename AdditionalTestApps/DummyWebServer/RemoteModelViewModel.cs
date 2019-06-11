@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using Windows.Storage;
+using Windows.System;
+using Windows.UI.Xaml;
 
 namespace DummyWebServer
 {
@@ -92,7 +96,24 @@ namespace DummyWebServer
                 this.Identifier,
                 this.RemoteHostIp);
 
-            await modelDownloader.DownloadModelToLocalStorageAsync();
+            var mainFilePath = await modelDownloader.DownloadModelToLocalStorageAsync();
+
+            if (!string.IsNullOrEmpty(mainFilePath))
+            {
+                var fileListFileName =
+                    Path.Combine(
+                        KnownFolders.Objects3D.Path,
+                        FileStorageManager.GetFileListRelativeUri(this.Identifier).Replace('/', '\\'));                
+
+                var file = await StorageFile.GetFileFromPathAsync(fileListFileName);
+
+                var copiedFile = await file.CopyAsync(
+                    ApplicationData.Current.TemporaryFolder,
+                    Path.ChangeExtension(Path.GetFileName(file.Path), ".txt"),
+                    NameCollisionOption.ReplaceExisting);
+
+                await Launcher.LaunchFileAsync(copiedFile);
+            }
         }
         Guid identifier;
         IPAddress remoteHostIp;

@@ -113,14 +113,17 @@ namespace DummyWebServer
         {
             var msg = message as DeleteModelMessage;
 
-            var modelEntry = this.ObservedNewModels.Single(
+            var modelEntry = this.ObservedNewModels.SingleOrDefault(
                 m => m.Identifier == msg.ModelIdentifier);
 
-            this.ObservedNewModels.Remove(modelEntry);
+            if (modelEntry != null)
+            {
+                this.ObservedNewModels.Remove(modelEntry);
 
-            this.ObservedDeletedModelIds.Add(msg.ModelIdentifier);
+                this.ObservedDeletedModelIds.Add(msg.ModelIdentifier);
 
-            this.FirePropertyChanged(nameof(HasNewModels));
+                this.FirePropertyChanged(nameof(HasNewModels));
+            }
         }
         void OnNewModelMessage(object message)
         {

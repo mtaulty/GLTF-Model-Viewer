@@ -10,6 +10,7 @@ using Microsoft.MixedReality.Toolkit;
 using System.Linq;
 using Microsoft.MixedReality.Toolkit.Physics;
 using Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization;
+using MulticastMessaging;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
@@ -18,6 +19,7 @@ using Windows.Media.SpeechRecognition;
 
 public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
 {
+#pragma warning disable 0649
     [SerializeField]
     MixedRealityInputAction openAction;
     [SerializeField]
@@ -27,12 +29,14 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
 
     [SerializeField]
     GameObject parentPrefabWithInteractionConfigured;
+#pragma warning restore 0649
 
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
     ModelPositioningManager ModelLoader => this.gameObject.GetComponent<ModelPositioningManager>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
+    INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
 
     void Start()
     {
@@ -84,7 +88,7 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
                 // Write out all the files that were part of loading this model
                 // into a file in case they need sharing in future.
                 await FileStorageManager.StoreFileListAsync(
-                    (Guid)modelIdentifier.Identifier, modelDetails.RelativeLoadedFilePaths);
+                    (Guid)modelIdentifier.Identifier, modelDetails);
 
                 // And export the anchor into the file system as well.
                 // TODO: this will currently wait "for ever" for the world anchor to be
