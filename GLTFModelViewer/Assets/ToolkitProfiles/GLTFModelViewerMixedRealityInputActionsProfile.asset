@@ -62,3 +62,6 @@ MonoBehaviour:
   - id: 16
     description: Reset
     axisConstraint: 0
+  - id: 17
+    description: FrameRate
+    axisConstraint: 0

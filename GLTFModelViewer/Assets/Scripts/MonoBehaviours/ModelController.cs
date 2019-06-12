@@ -29,6 +29,9 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
 
     [SerializeField]
     GameObject parentPrefabWithInteractionConfigured;
+
+    [SerializeField]
+    MixedRealityInputAction frameRateAction;
 #pragma warning restore 0649
 
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
@@ -325,5 +328,15 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
         {
             this.OnResetSpeechCommand();
         }
+        else if (eventData.Command.Action == this.frameRateAction)
+        {
+            this.OnToggleFrameRateSpeechCommand();
+        }
+    }
+    void OnToggleFrameRateSpeechCommand()
+    {
+        // TODO: take this out of here, it belongs somewhere more 'global'
+        MixedRealityToolkit.DiagnosticsSystem.ShowProfiler =
+            !MixedRealityToolkit.DiagnosticsSystem.ShowProfiler;
     }
 }

@@ -54,7 +54,7 @@ namespace Microsoft.MixedReality.Toolkit.Input
             {
                 if (pointerId == 0)
                 {
-                    pointerId = MixedRealityToolkit.InputSystem.FocusProvider.GenerateNewPointerId();
+                    pointerId = InputSystem.FocusProvider.GenerateNewPointerId();
                 }
 
                 return pointerId;
@@ -89,6 +89,9 @@ namespace Microsoft.MixedReality.Toolkit.Input
 
         /// <inheritdoc />
         public bool IsFocusLocked { get; set; }
+
+        /// <inheritdoc />
+        public bool IsTargetPositionLockedOnFocusLock { get; set; }
 
         public RayStep[] Rays { get; protected set; } = { new RayStep(Vector3.zero, Vector3.forward) };
 
@@ -159,13 +162,16 @@ namespace Microsoft.MixedReality.Toolkit.Input
 
         public void OnPostSceneQuery()
         {
-
+            if (isSelectPressed && IsInteractionEnabled)
+            {
+                InputSystem.RaisePointerDragged(this, MixedRealityInputAction.None, Controller.ControllerHandedness);
+            }
         }
 
         public void OnPreSceneQuery()
         {
             Vector3 newGazeOrigin = gazeProvider.GazePointer.Rays[0].Origin;
-            Vector3 endPoint = newGazeOrigin + (gazeProvider.GazePointer.Rays[0].Direction * MixedRealityToolkit.InputSystem.FocusProvider.GlobalPointingExtent);
+            Vector3 endPoint = newGazeOrigin + (gazeProvider.GazePointer.Rays[0].Direction * InputSystem.FocusProvider.GlobalPointingExtent);
             Rays[0].UpdateRayStep(ref newGazeOrigin, ref endPoint);
         }
 
@@ -210,8 +216,8 @@ namespace Microsoft.MixedReality.Toolkit.Input
                         {
                             c.IsPointerDown = false;
                         }
-                        MixedRealityToolkit.InputSystem.RaisePointerClicked(this, selectAction, 0, Controller.ControllerHandedness);
-                        MixedRealityToolkit.InputSystem.RaisePointerUp(this, selectAction, Controller.ControllerHandedness);
+                        InputSystem.RaisePointerClicked(this, selectAction, 0, Controller.ControllerHandedness);
+                        InputSystem.RaisePointerUp(this, selectAction, Controller.ControllerHandedness);
                     }
                 }
             }
@@ -233,7 +239,7 @@ namespace Microsoft.MixedReality.Toolkit.Input
                         {
                             c.IsPointerDown = true;
                         }
-                        MixedRealityToolkit.InputSystem.RaisePointerDown(this, selectAction, Controller.ControllerHandedness);
+                        InputSystem.RaisePointerDown(this, selectAction, Controller.ControllerHandedness);
                     }
                 }
             }
@@ -244,7 +250,7 @@ namespace Microsoft.MixedReality.Toolkit.Input
         protected override void Start()
         {
             base.Start();
-            this.gazeProvider = MixedRealityToolkit.InputSystem.GazeProvider as GazeProvider;
+            this.gazeProvider = InputSystem.GazeProvider as GazeProvider;
             BaseCursor c = gazeProvider.GazePointer.BaseCursor as BaseCursor;
             if (c != null)
             {
@@ -294,7 +300,7 @@ namespace Microsoft.MixedReality.Toolkit.Input
                 if (isSelectPressed)
                 {
                     // Raise OnInputUp if pointer is lost while select is pressed
-                    MixedRealityToolkit.InputSystem.RaisePointerUp(this, selectAction, lastControllerHandedness);
+                    InputSystem.RaisePointerUp(this, selectAction, lastControllerHandedness);
                 }
 
                 if (gazeProvider != null)

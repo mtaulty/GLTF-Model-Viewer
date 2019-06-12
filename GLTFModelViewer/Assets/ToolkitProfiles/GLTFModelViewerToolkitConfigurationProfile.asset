@@ -14,8 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isCustomProfile: 1
   targetExperienceScale: 4
-  enableCameraProfile: 1
+  enableCameraSystem: 1
   cameraProfile: {fileID: 11400000, guid: 820164778618f1546a7f9567f2f40952, type: 2}
+  cameraSystemType:
+    reference: Microsoft.MixedReality.Toolkit.CameraSystem.MixedRealityCameraSystem,
+      MixedRealityToolkit.Services.CameraSystem
   enableInputSystem: 1
   inputSystemProfile: {fileID: 11400000, guid: f7569ec19150d014cb7c236d9fcff816, type: 2}
   inputSystemType:
@@ -44,3 +47,4 @@ MonoBehaviour:
       Microsoft.MixedReality.Toolkit.Services.DiagnosticsSystem
   registeredServiceProvidersProfile: {fileID: 11400000, guid: 2d588b83760a66b4d868204954ec4ecd,
     type: 2}
+  useServiceInspectors: 0

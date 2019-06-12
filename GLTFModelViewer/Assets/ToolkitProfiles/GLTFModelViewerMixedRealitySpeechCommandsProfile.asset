@@ -24,20 +24,6 @@ MonoBehaviour:
       description: Menu
       axisConstraint: 2
   - localizationKey: 
-    keyword: Toggle Diagnostics
-    keyCode: 100
-    action:
-      id: 1
-      description: Toggle Diagnostics
-      axisConstraint: 0
-  - localizationKey: 
-    keyword: Toggle Profiler
-    keyCode: 112
-    action:
-      id: 7
-      description: Grip Press
-      axisConstraint: 3
-  - localizationKey: 
     keyword: Open
     keyCode: 111
     action:
@@ -57,4 +43,11 @@ MonoBehaviour:
     action:
       id: 15
       description: Remove
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: Profiler
+    keyCode: 0
+    action:
+      id: 17
+      description: FrameRate
       axisConstraint: 0

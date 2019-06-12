@@ -262,6 +262,10 @@ MonoBehaviour:
     axisConstraint: 0
   parentPrefabWithInteractionConfigured: {fileID: 2776631784665229490, guid: 2f3b8ffed65ccc4429030b107d3e58f3,
     type: 3}
+  frameRateAction:
+    id: 17
+    description: FrameRate
+    axisConstraint: 0
 --- !u!82 &425312698
 AudioSource:
   m_ObjectHideFlags: 0
@@ -728,7 +732,7 @@ MonoBehaviour:
   gazeTransform: {fileID: 0}
   minHeadVelocityThreshold: 0.5
   maxHeadVelocityThreshold: 2
-  preferEyeTracking: 0
+  useEyeTracking: 1
 --- !u!114 &1934544280
 MonoBehaviour:
   m_ObjectHideFlags: 0
