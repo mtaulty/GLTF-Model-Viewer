@@ -182,7 +182,7 @@ MonoBehaviour:
   lifetime: 0
   SolverHandler: {fileID: 287291578}
   orientationType: 0
-  localOffset: {x: 0, y: -1, z: 1}
+  localOffset: {x: 0, y: 0, z: 0.75}
   worldOffset: {x: 0, y: 0, z: 0}
   useAngleSteppingForWorldOffset: 0
   tetherAngleSteps: 6
@@ -248,24 +248,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e6342db9e4dab2469000438f9e5345f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  openAction:
-    id: 14
-    description: Open
-    axisConstraint: 0
-  removeAction:
-    id: 15
-    description: Remove
-    axisConstraint: 0
-  resetAction:
-    id: 16
-    description: Reset
-    axisConstraint: 0
   parentPrefabWithInteractionConfigured: {fileID: 2776631784665229490, guid: 2f3b8ffed65ccc4429030b107d3e58f3,
     type: 3}
-  frameRateAction:
-    id: 17
-    description: FrameRate
-    axisConstraint: 0
 --- !u!82 &425312698
 AudioSource:
   m_ObjectHideFlags: 0

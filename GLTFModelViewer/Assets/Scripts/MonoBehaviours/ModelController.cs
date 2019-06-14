@@ -17,21 +17,11 @@ using Windows.Storage;
 using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
+public class ModelController : MonoBehaviour
 {
 #pragma warning disable 0649
     [SerializeField]
-    MixedRealityInputAction openAction;
-    [SerializeField]
-    MixedRealityInputAction removeAction;
-    [SerializeField]
-    MixedRealityInputAction resetAction;
-
-    [SerializeField]
     GameObject parentPrefabWithInteractionConfigured;
-
-    [SerializeField]
-    MixedRealityInputAction frameRateAction;
 #pragma warning restore 0649
 
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
@@ -40,6 +30,7 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
     INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
+    ISingleShotSpeechRecognitionService SpeechService => MixedRealityToolkit.Instance.GetService<ISingleShotSpeechRecognitionService>();
 
     void Start()
     {
@@ -47,15 +38,34 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
         NetworkMessagingProvider.NewModelOnNetwork += this.OnNewModelFromNetwork;
         NetworkMessagingProvider.Initialise();
 
-        // Register this object as a global listener for events so that this object
-        // gets all the speech generated events.
-        MixedRealityToolkit.InputSystem?.Register(this.gameObject);
+        // Fire and forget...
+        this.InitialiseSpeechCommands();
+    }
+    async Task InitialiseSpeechCommands()
+    {
+        if (this.SpeechService != null)
+        {
+            var entries = new Dictionary<string, Func<Task>>()
+            {
+                ["open"] = this.OnOpenSpeechCommand,
+                ["remove"] = this.OnRemoveSpeechCommand,
+                ["reset"] = this.OnResetSpeechCommand,
+                ["profiler"] = this.OnToggleProfilerSpeechCommand
+            };
+            while (true)
+            {
+                var result = await this.SpeechService.RecogniseAsync(entries);
+
+                // Just in case things go very wrong and we start to spin.
+                await Task.Delay(250);
+            }
+        }
     }
     protected virtual void OnDisable()
     {
         MixedRealityToolkit.InputSystem?.Unregister(gameObject);
     }
-    public async void OnOpenSpeechCommand()
+    public async Task OnOpenSpeechCommand()
     {
         var filePath = await this.PickFileFrom3DObjectsFolderAsync();
 
@@ -115,6 +125,52 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
             }
         }
     }
+    async Task OnToggleProfilerSpeechCommand()
+    {
+        // TODO: take this out of here, it belongs somewhere more 'global'
+        MixedRealityToolkit.DiagnosticsSystem.ShowProfiler =
+            !MixedRealityToolkit.DiagnosticsSystem.ShowProfiler;
+    }
+
+    public async Task OnResetSpeechCommand()
+    {
+        bool first = true;
+
+        var modelPositioningManagers = this.GetFocusedObjectWithChildComponent<ModelPositioningManager>();
+
+        foreach (var modelPositioningManager in modelPositioningManagers)
+        {
+            if (first)
+            {
+                this.AudioManager.PlayClip(AudioClipType.Resetting);
+                first = !first;
+            }
+            modelPositioningManager.ReturnModelToLoadedPosition();
+        }
+    }
+    public async Task OnRemoveSpeechCommand()
+    {
+        var modelIdentifiers = this.GetFocusedObjectWithChildComponent<ModelIdentifier>();
+
+        foreach (var modelIdentifier in modelIdentifiers)
+        {
+            // Send network message saying we have got rid of this object in case others
+            // are displaying it.
+            NetworkMessagingProvider.SendDeletedModelMessage((Guid)modelIdentifier.Identifier);
+
+            modelIdentifier.GetComponent<ModelPositioningManager>().Destroy();       
+        }
+    }
+    void ShowBusy(string message)
+    {
+        this.CursorManager.Hide();
+        this.ProgressRingManager.Show(message);
+    }
+    void HideBusy()
+    {
+        this.ProgressRingManager.Hide();
+        this.CursorManager.Show();
+    }
     IEnumerable<T> GetFocusedObjectWithChildComponent<T>() where T : MonoBehaviour
     {
         // TODO: I need to figure whether this is the right way to do things. Is it right
@@ -138,45 +194,6 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
                 }
             }
         }
-    }
-    public void OnResetSpeechCommand()
-    {
-        bool first = true;
-
-        var modelPositioningManagers = this.GetFocusedObjectWithChildComponent<ModelPositioningManager>();
-
-        foreach (var modelPositioningManager in modelPositioningManagers)
-        {
-            if (first)
-            {
-                this.AudioManager.PlayClip(AudioClipType.Resetting);
-                first = !first;
-            }
-            modelPositioningManager.ReturnModelToLoadedPosition();
-        }
-    }
-    public void OnRemoveSpeechCommand()
-    {
-        var modelIdentifiers = this.GetFocusedObjectWithChildComponent<ModelIdentifier>();
-
-        foreach (var modelIdentifier in modelIdentifiers)
-        {
-            // Send network message saying we have got rid of this object in case others
-            // are displaying it.
-            NetworkMessagingProvider.SendDeletedModelMessage((Guid)modelIdentifier.Identifier);
-
-            modelIdentifier.GetComponent<ModelPositioningManager>().Destroy();       
-        }
-    }
-    void ShowBusy(string message)
-    {
-        this.CursorManager.Hide();
-        this.ProgressRingManager.Show(message);
-    }
-    void HideBusy()
-    {
-        this.ProgressRingManager.Hide();
-        this.CursorManager.Show();
     }
     async Task<string> DownloadModelToLocalStorageAsync(
         Guid modelIdentifier, IPAddress ipAddress)
@@ -312,31 +329,5 @@ public class ModelController : MonoBehaviour, IMixedRealitySpeechHandler
             this.AudioManager?.PlayClip(AudioClipType.LoadError);
         }
         return (modelDetails);
-    }
-    public void OnSpeechKeywordRecognized(SpeechEventData eventData)
-    {
-        // TODO: Can improve this.
-        if (eventData.Command.Action == this.openAction)
-        {
-            this.OnOpenSpeechCommand();
-        }
-        else if (eventData.Command.Action == this.removeAction)
-        {
-            this.OnRemoveSpeechCommand();
-        }
-        else if (eventData.Command.Action == this.resetAction)
-        {
-            this.OnResetSpeechCommand();
-        }
-        else if (eventData.Command.Action == this.frameRateAction)
-        {
-            this.OnToggleFrameRateSpeechCommand();
-        }
-    }
-    void OnToggleFrameRateSpeechCommand()
-    {
-        // TODO: take this out of here, it belongs somewhere more 'global'
-        MixedRealityToolkit.DiagnosticsSystem.ShowProfiler =
-            !MixedRealityToolkit.DiagnosticsSystem.ShowProfiler;
     }
 }

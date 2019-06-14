@@ -944,7 +944,7 @@ MonoBehaviour:
   - {fileID: 1634107716976086}
   - {fileID: 1732263211534098}
   - {fileID: 1404347800010822}
-  orbMaterial: {fileID: 2100000, guid: 680505b4b4f3400f9fd3ebb242751819, type: 2}
+  orbMaterial: {fileID: 2100000, guid: 8f2fb2809320347428c67ea7c78ef4c5, type: 2}
   RotationSpeedRawDegrees: -200
   SpacingDegrees: 22
   Acceleration: 1.4

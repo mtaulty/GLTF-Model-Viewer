@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GLTFModelViewerMixedRealitySpeechCommandsProfile
   m_EditorClassIdentifier: 
   isCustomProfile: 1
-  startBehavior: 0
+  startBehavior: 1
   recognitionConfidenceLevel: 1
   speechCommands:
   - localizationKey: 
@@ -31,23 +31,9 @@ MonoBehaviour:
       description: Open
       axisConstraint: 0
   - localizationKey: 
-    keyword: Reset
+    keyword: NOTUSINGTHISRIGHTNOW
     keyCode: 61
     action:
       id: 16
       description: Reset
-      axisConstraint: 0
-  - localizationKey: 
-    keyword: Remove
-    keyCode: 8
-    action:
-      id: 15
-      description: Remove
-      axisConstraint: 0
-  - localizationKey: 
-    keyword: Profiler
-    keyCode: 0
-    action:
-      id: 17
-      description: FrameRate
       axisConstraint: 0

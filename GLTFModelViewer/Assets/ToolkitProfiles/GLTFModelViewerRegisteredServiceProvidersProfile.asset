@@ -27,3 +27,9 @@ MonoBehaviour:
     priority: 5
     runtimePlatform: 8
     configurationProfile: {fileID: 0}
+  - componentType:
+      reference: SingleShotSpeechRecognitionService, Assembly-CSharp
+    componentName: Speech Service
+    priority: 10
+    runtimePlatform: 8
+    configurationProfile: {fileID: 0}
