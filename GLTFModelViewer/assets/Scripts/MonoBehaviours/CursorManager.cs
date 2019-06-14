@@ -10,7 +10,7 @@ public class CursorManager : MonoBehaviour
     {
         this.hiddenPointers = new List<IMixedRealityPointer>();
     }
-    public void Show()
+    public void Hide()
     {
         // TODO: I need to understand how you are supposed to do this on V2, I just want
         // to switch all cursors off when the user cannot do anything useful with them.
@@ -18,21 +18,24 @@ public class CursorManager : MonoBehaviour
         {
             foreach (var pointer in inputSource.Pointers)
             {
-                if (pointer.IsActive)
+                if ((pointer.IsActive) && (pointer.BaseCursor != null))
                 {
-                    pointer.IsActive = false;
+                    pointer.BaseCursor.SetVisibility(false);
                     this.hiddenPointers.Add(pointer);
                 }
             }
         }
+        MixedRealityToolkit.InputSystem.GazeProvider.Enabled = false;
     }
-    public void Hide()
+    public void Show()
     {
         foreach (var pointer in this.hiddenPointers)
         {
-            pointer.IsActive = true;
+            pointer.BaseCursor.SetVisibility(true);
         }
         this.hiddenPointers.Clear();
+
+        MixedRealityToolkit.InputSystem.GazeProvider.Enabled = true;
     }
     List<IMixedRealityPointer> hiddenPointers;
 }
