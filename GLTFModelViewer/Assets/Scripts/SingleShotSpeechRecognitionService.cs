@@ -3,6 +3,8 @@ using Microsoft.MixedReality.Toolkit;
 using Microsoft.MixedReality.Toolkit.Utilities;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using UnityEngine.Windows.Speech;
+using System.Linq;
 
 #if ENABLE_WINMD_SUPPORT
 using System.Windows.Input;
@@ -58,7 +60,33 @@ public class SingleShotSpeechRecognitionService : BaseExtensionService, ISingleS
                 result = true;
             }            
         }
-#endif // ENABLE_WINMD_SUPPORT
+#endif
+
+#if UNITY_EDITOR
+
+        // Not sure if this sort of 'create and throw away' approach 
+        using (var recognizer = new KeywordRecognizer(keywordsAndHandlers.Keys.ToArray()))
+        {
+            var completed = new TaskCompletionSource<bool>();
+
+            recognizer.OnPhraseRecognized += async (e) =>
+            {
+                var recognised = false;
+
+                if (e.confidence != ConfidenceLevel.Rejected)
+                {
+                    await keywordsAndHandlers?[e.text]();
+                    recognised = true;
+                }
+                completed.SetResult(recognised);
+            };
+            recognizer.Start();
+
+            result = await completed.Task;
+
+            recognizer.Stop();
+        }
+#endif
         return (result);
     }
 }
