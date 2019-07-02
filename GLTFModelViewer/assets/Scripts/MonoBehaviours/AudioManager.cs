@@ -2,10 +2,6 @@
 using System.Linq;
 using UnityEngine;
 
-#if ENABLE_WINMD_SUPPORT
-using Windows.Storage;
-#endif // ENABLE_WINMD_SUPPORT
-
 public enum AudioClipType
 {
     Welcome,
@@ -45,29 +41,21 @@ public class AudioManager : MonoBehaviour
     }
     public bool HasClipPlayedPreviously(AudioClipType clipType)
     {
-#if ENABLE_WINMD_SUPPORT
         var clipName = clipType.ToString();
 
-        return (ApplicationData.Current.LocalSettings.Values.ContainsKey(clipName));
-#else
-        throw new NotImplementedException();
-#endif
+        return (PlayerPrefs.HasKey(clipName));
     }
     public bool PlayClipOnceOnly(AudioClipType clipType)
     {
-#if ENABLE_WINMD_SUPPORT
         bool play = !this.HasClipPlayedPreviously(clipType);
 
         if (play)
         {
             var clipName = clipType.ToString();
-            ApplicationData.Current.LocalSettings.Values[clipName] = true;
+            PlayerPrefs.SetFloat(clipName, 1);
             this.PlayClip(clipType);
         }
         return (play);
-#else
-        throw new NotImplementedException();
-#endif 
     }
     void Start()
     {

@@ -8,10 +8,10 @@ public class CursorManager : MonoBehaviour
 
     public void Show()
     {
-        this.cursor.gameObject.SetActive(true);
+        //this.cursor.gameObject.SetActive(true);
     }
     public void Hide()
     {
-        this.cursor.gameObject.SetActive(false);
+        //this.cursor.gameObject.SetActive(false);
     }
 }

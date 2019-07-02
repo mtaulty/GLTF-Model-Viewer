@@ -6,23 +6,33 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityGLTF;
 using System.IO;
+using UnityEditor;
+using Microsoft.MixedReality.Toolkit.Input;
+using UnityEngine.Events;
+using System.Linq;
+using Microsoft.MixedReality.Toolkit;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
 using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class ModelController : ExtendedMonoBehaviour
+public class ModelController : ExtendedMonoBehaviour, IMixedRealityInputActionHandler
 {
+    [Serializable]
+    public class ActionHandler
+    {
+        public MixedRealityInputAction action;
+        public UnityEvent handler;
+    }
+    [SerializeField]
+    ActionHandler[] actionHandlers;
+
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
     ModelPositioningManager ModelLoader => this.gameObject.GetComponent<ModelPositioningManager>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
-
-    static readonly string OPEN_SPEECH_TEXT = "open";
-    static readonly string RESET_SPEECH_TEXT = "reset";
-    static readonly string REMOVE_SPEECH_TEXT = "remove";
 
 #if ENABLE_WINMD_SUPPORT
     SpeechRecognizer recognizer;
@@ -35,7 +45,12 @@ public class ModelController : ExtendedMonoBehaviour
         NetworkMessagingProvider.Initialise();
 
 #if ENABLE_WINMD_SUPPORT
+        // For UWP devices, we handle speech ourselves, I have switched off the
+        // Windows Speech Input and Windows Dictation Input in the profiles.
         this.StartSpeechCommandHandlingAsync();
+#else
+        // For the editor, we let the MRTK V2 handle speech.
+        MixedRealityToolkit.InputSystem.Register(this.gameObject);
 #endif // ENABLE_WINMD_SUPPORT
     }
 #if ENABLE_WINMD_SUPPORT    
@@ -60,23 +75,12 @@ public class ModelController : ExtendedMonoBehaviour
     async void StartSpeechCommandHandlingAsync()
     {
         while (true)
-        {
-            var command = await this.SelectSpeechCommandAsync(
-                OPEN_SPEECH_TEXT, 
-                RESET_SPEECH_TEXT, 
-                REMOVE_SPEECH_TEXT);
+        {            
+            var command = await this.SelectSpeechCommandAsync();
 
-            if (string.Compare(OPEN_SPEECH_TEXT, command, true) == 0)
+            if (command.Action != MixedRealityInputAction.None)
             {
-                this.OnOpenSpeechCommand();
-            }
-            else if (string.Compare(RESET_SPEECH_TEXT, command, true) == 0)
-            {
-                this.OnResetSpeechCommand();
-            }
-            else if (string.Compare(REMOVE_SPEECH_TEXT, command, true) == 0)
-            {
-                this.OnRemoveSpeechCommand();
+                this.InvokeActionHandler(command.Action);
             }
             else
             {
@@ -87,13 +91,17 @@ public class ModelController : ExtendedMonoBehaviour
             }
         }
     }
-    async Task<string> SelectSpeechCommandAsync(params string[] commands)
+    async Task<SpeechCommands> SelectSpeechCommandAsync()
     {
-        string command = string.Empty;
+        var registeredCommands = MixedRealityToolkit.InputSystem.InputSystemProfile.SpeechCommandsProfile.SpeechCommands;
+
+        SpeechCommands command = default(SpeechCommands);
 
         using (var recognizer = new SpeechRecognizer())
         {
-            recognizer.Constraints.Add(new SpeechRecognitionListConstraint(commands));
+            recognizer.Constraints.Add(
+                new SpeechRecognitionListConstraint(registeredCommands.Select(c => c.Keyword)));
+
             await recognizer.CompileConstraintsAsync();
 
             var result = await recognizer.RecognizeAsync();
@@ -102,14 +110,13 @@ public class ModelController : ExtendedMonoBehaviour
                 ((result.Confidence == SpeechRecognitionConfidence.Medium) ||
                  (result.Confidence == SpeechRecognitionConfidence.High)))
             {
-                command = result.Text;
+                command = registeredCommands.FirstOrDefault(c => string.Compare(c.Keyword, result.Text, true) == 0);
             }                    
         }
         return (command);
     }
-
 #endif // ENABLE_WINMD_SUPPORT
-    async void OnOpenSpeechCommand()
+    public async void OnOpenSpeechCommand()
     {
         var filePath = await this.PickFileFrom3DObjectsFolderAsync();
 
@@ -170,7 +177,7 @@ public class ModelController : ExtendedMonoBehaviour
             }
         }
     }
-    void OnResetSpeechCommand()
+    public void OnResetSpeechCommand()
     {
         if (FocusWatcher.HasFocusedObject)
         {
@@ -181,7 +188,7 @@ public class ModelController : ExtendedMonoBehaviour
             focusedObject.GetComponent<ModelPositioningManager>().ReturnModelToLoadedPosition();
         }
     }
-    void OnRemoveSpeechCommand()
+    public void OnRemoveSpeechCommand()
     {
         if (FocusWatcher.HasFocusedObject)
         {
@@ -194,6 +201,11 @@ public class ModelController : ExtendedMonoBehaviour
 
             focusedObject.GetComponent<ModelUpdatesManager>().Destroy();
         }
+    }
+    public void OnToggleProfilerSpeechCommand()
+    {
+        MixedRealityToolkit.DiagnosticsSystem.ShowProfiler =
+            !MixedRealityToolkit.DiagnosticsSystem.ShowProfiler;
     }
     void ShowBusy(string message)
     {
@@ -299,8 +311,12 @@ public class ModelController : ExtendedMonoBehaviour
                 this.AudioManager.PlayClipOnceOnly(AudioClipType.PickFileFrom3DObjectsFolder);
             }
         } while (filePath == string.Empty);
-
-#endif // ENABLE_WINMD_SUPPORT
+#else
+        filePath = EditorUtility.OpenFilePanelWithFilters(
+            "Select GLTF File",
+            string.Empty,
+            new string[] { "GLTF Files", "gltf,glb", "All Files", "*" });
+#endif 
 
         return (filePath);
     }
@@ -341,5 +357,19 @@ public class ModelController : ExtendedMonoBehaviour
             this.AudioManager?.PlayClip(AudioClipType.LoadError);
         }
         return (modelDetails);
+    }
+
+    public void OnActionStarted(Microsoft.MixedReality.Toolkit.Input.BaseInputEventData eventData)
+    {
+        this.InvokeActionHandler(eventData.MixedRealityInputAction);
+    }
+    void InvokeActionHandler(MixedRealityInputAction action)
+    {
+        var actionHandlerEntry = this.actionHandlers.FirstOrDefault(h => h.action == action);
+
+        actionHandlerEntry?.handler?.Invoke();
+    }
+    public void OnActionEnded(Microsoft.MixedReality.Toolkit.Input.BaseInputEventData eventData)
+    {
     }
 }
