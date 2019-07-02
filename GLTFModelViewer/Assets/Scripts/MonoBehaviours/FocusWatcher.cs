@@ -1,15 +1,14 @@
 ﻿using HoloToolkit.Unity.InputModule;
-using System.Collections;
-using System.Collections.Generic;
+using Microsoft.MixedReality.Toolkit.Input;
 using UnityEngine;
 
-public class FocusWatcher : MonoBehaviour, IFocusable
+public class FocusWatcher : MonoBehaviour, IMixedRealityFocusHandler
 {
-    public void OnFocusEnter()
+    public void OnFocusEnter(FocusEventData eventData)
     {
         focusedObject = this.gameObject;
     }
-    public void OnFocusExit()
+    public void OnFocusExit(FocusEventData eventData)
     {
         focusedObject = null;
     }
