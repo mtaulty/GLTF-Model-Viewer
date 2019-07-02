@@ -11,13 +11,14 @@ using Microsoft.MixedReality.Toolkit.Input;
 using UnityEngine.Events;
 using System.Linq;
 using Microsoft.MixedReality.Toolkit;
+using Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
 using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class ModelController : ExtendedMonoBehaviour, IMixedRealityInputActionHandler
+public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
 {
     [Serializable]
     public class ActionHandler
@@ -153,8 +154,12 @@ public class ModelController : ExtendedMonoBehaviour, IMixedRealityInputActionHa
                 // Write out all the files that were part of loading this model
                 // into a file in case they need sharing in future.
                 await FileStorageManager.StoreFileListAsync(
-                    (Guid)modelIdentifier.Identifier, modelDetails.FileLoader);
+                    (Guid)modelIdentifier.Identifier, modelDetails);
 
+                // We don't attempt to export the anchor from the editor, nor
+                // do we attempt to send messages around the network, that
+                // functionality is only on device right now.
+#if ENABLE_WINMD_SUPPORT
                 // And export the anchor into the file system as well.
                 // TODO: this will currently wait "for ever" for the world anchor to be
                 // located which might be wildly optimistic, we should probably add some
@@ -174,6 +179,7 @@ public class ModelController : ExtendedMonoBehaviour, IMixedRealityInputActionHa
                     NetworkMessagingProvider.SendNewModelMessage(
                         (Guid)modelIdentifier.Identifier);
                 }
+#endif // ENABLE_WINMD_SUPPORT
             }
         }
     }
@@ -316,7 +322,7 @@ public class ModelController : ExtendedMonoBehaviour, IMixedRealityInputActionHa
             "Select GLTF File",
             string.Empty,
             new string[] { "GLTF Files", "gltf,glb", "All Files", "*" });
-#endif 
+#endif
 
         return (filePath);
     }
@@ -328,19 +334,12 @@ public class ModelController : ExtendedMonoBehaviour, IMixedRealityInputActionHa
 
         try
         {
-            modelDetails = new ImportedModelInfo(
-                new RecordingFileLoader(Path.GetDirectoryName(filePath)));
+            var gltfObject = await GltfUtility.ImportGltfObjectFromPathAsync(filePath);
 
-            GLTFSceneImporter importer = new GLTFSceneImporter(
-                Path.GetFileName(filePath), modelDetails.FileLoader);
-
-            importer.Collider = GLTFSceneImporter.ColliderType.Box;
-
-            await base.RunCoroutineAsync(
-                importer.LoadScene(
-                    -1,
-                    gameObject => modelDetails.GameObject = gameObject)
-            );
+            if (gltfObject != null)
+            {
+                modelDetails = new ImportedModelInfo(filePath, gltfObject);
+            }
         }
         catch
         {

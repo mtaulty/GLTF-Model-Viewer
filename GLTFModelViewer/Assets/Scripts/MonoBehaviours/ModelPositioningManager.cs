@@ -1,15 +1,7 @@
-﻿using HoloToolkit.Unity.InputModule.Utilities.Interactions;
-using HoloToolkit.Unity.UX;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using UnityEngine;
-using UnityEngine.XR.WSA;
-using UnityGLTF;
 
-public class ModelPositioningManager : ExtendedMonoBehaviour
+public class ModelPositioningManager : MonoBehaviour
 {
     Vector3? initialScaleFactor;
 
