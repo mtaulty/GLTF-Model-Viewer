@@ -1,17 +1,15 @@
-﻿using HoloToolkit.Unity.InputModule;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityGLTF;
-using System.IO;
 using UnityEditor;
 using Microsoft.MixedReality.Toolkit.Input;
 using UnityEngine.Events;
 using System.Linq;
 using Microsoft.MixedReality.Toolkit;
 using Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization;
+using System.Collections.Generic;
+using Microsoft.MixedReality.Toolkit.Physics;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
@@ -28,6 +26,9 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
     }
     [SerializeField]
     ActionHandler[] actionHandlers;
+
+    [SerializeField]
+    GameObject parentPrefabWithInteractionConfigured;
 
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
     ModelPositioningManager ModelLoader => this.gameObject.GetComponent<ModelPositioningManager>();
@@ -133,13 +134,11 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
                 // Give the new model a new identity.
                 var modelIdentifier = newModel.AddComponent<ModelIdentifier>();
 
-                // Make it focusable.
-                newModel.AddComponent<FocusWatcher>();
-
                 // Add positioning.
                 var positioningManager = newModel.AddComponent<ModelPositioningManager>();
-                positioningManager.InitialiseSizeAndPositioning(
-                    this.RootParentProvider.RootParent);
+                positioningManager.CreateAndPositionParentAndModel(
+                    this.RootParentProvider.RootParent,
+                    this.parentPrefabWithInteractionConfigured);
 
                 // Add manipulations to the new model so it can be moved around.
                 var manipManager = newModel.AddComponent<ModelUpdatesManager>();
@@ -185,27 +184,31 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
     }
     public void OnResetSpeechCommand()
     {
-        if (FocusWatcher.HasFocusedObject)
+        bool first = true;
+
+        var modelPositioningManagers = this.GetFocusedObjectWithChildComponent<ModelPositioningManager>();
+
+        foreach (var modelPositioningManager in modelPositioningManagers)
         {
-            var focusedObject = FocusWatcher.FocusedObject;
-
-            this.AudioManager.PlayClip(AudioClipType.Resetting);
-
-            focusedObject.GetComponent<ModelPositioningManager>().ReturnModelToLoadedPosition();
+            if (first)
+            {
+                this.AudioManager.PlayClip(AudioClipType.Resetting);
+                first = !first;
+            }
+            modelPositioningManager.ReturnModelToLoadedPosition();
         }
     }
     public void OnRemoveSpeechCommand()
     {
-        if (FocusWatcher.HasFocusedObject)
-        {
-            var focusedObject = FocusWatcher.FocusedObject;
+        var modelIdentifiers = this.GetFocusedObjectWithChildComponent<ModelIdentifier>();
 
+        foreach (var modelIdentifier in modelIdentifiers)
+        {
             // Send network message saying we have got rid of this object in case others
             // are displaying it.
-            var modelIdentifier = focusedObject.GetComponent<ModelIdentifier>();
-            NetworkMessagingProvider.SendDeletedModelMessage(modelIdentifier.Identifier);
+            NetworkMessagingProvider.SendDeletedModelMessage((Guid)modelIdentifier.Identifier);
 
-            focusedObject.GetComponent<ModelUpdatesManager>().Destroy();
+            modelIdentifier.GetComponent<ModelPositioningManager>().Destroy();
         }
     }
     public void OnToggleProfilerSpeechCommand()
@@ -269,8 +272,10 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
 
                 // Add positioning.
                 var positioningManager = newModel.AddComponent<ModelPositioningManager>();
-                positioningManager.InitialiseSizeAndPositioning(
-                    this.RootParentProvider.RootParent);
+
+                positioningManager.CreateAndPositionParentAndModel(
+                    this.RootParentProvider.RootParent,
+                    this.parentPrefabWithInteractionConfigured);
 
                 // And updates (this handles incoming transformation messages along
                 // with removal messages too)
@@ -370,5 +375,29 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
     }
     public void OnActionEnded(Microsoft.MixedReality.Toolkit.Input.BaseInputEventData eventData)
     {
+    }
+    IEnumerable<T> GetFocusedObjectWithChildComponent<T>() where T : MonoBehaviour
+    {
+        // TODO: I need to figure whether this is the right way to do things. Is it right
+        // to get all the active pointers, ask them what is focused & then use that as
+        // the list of focused objects?
+        var pointers = MixedRealityToolkit.InputSystem.FocusProvider.GetPointers<IMixedRealityPointer>()
+            .Where(p => p.IsActive);
+
+        foreach (var pointer in pointers)
+        {
+            FocusDetails focusDetails;
+
+            if (MixedRealityToolkit.InputSystem.FocusProvider.TryGetFocusDetails(
+                pointer, out focusDetails))
+            {
+                var component = focusDetails.Object?.GetComponentInChildren<T>();
+
+                if (component != null)
+                {
+                    yield return component;
+                }
+            }
+        }
     }
 }

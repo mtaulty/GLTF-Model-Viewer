@@ -8,7 +8,7 @@ using UnityEngine.XR.WSA.Sharing;
 
 public class AnchorManager : MonoBehaviour
 {
-    GameObject AnchoredParent => this.gameObject.transform.parent.gameObject;
+    GameObject AnchoredParent => this.gameObject.GetComponent<ModelPositioningManager>().AnchoredParent;
 
     public void AddAnchorToModelParent()
     {
