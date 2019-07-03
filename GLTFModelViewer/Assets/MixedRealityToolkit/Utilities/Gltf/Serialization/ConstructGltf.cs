@@ -10,13 +10,6 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-// MIKET: Toolkit change as per
-// https://github.com/microsoft/MixedRealityToolkit-Unity/issues/4666
-#if ENABLE_WINMD_SUPPORT
-using Windows.Storage;
-using System.Runtime.InteropServices.WindowsRuntime;
-#endif 
-
 namespace Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization
 {
     public static class ConstructGltf
@@ -111,17 +104,7 @@ namespace Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization
             {
                 var parentDirectory = Directory.GetParent(gltfObject.Uri).FullName;
 
-                // MIKET: Toolkit change as per
-                // https://github.com/microsoft/MixedRealityToolkit-Unity/issues/4666
-#if ENABLE_WINMD_SUPPORT
-                var file = await StorageFile.GetFileFromPathAsync($"{parentDirectory}\\{bufferView.Buffer.uri}");
-
-                var buffer = await FileIO.ReadBufferAsync(file);
-
-                bufferView.Buffer.BufferData = buffer.ToArray();
-#else
                 bufferView.Buffer.BufferData = File.ReadAllBytes($"{parentDirectory}\\{bufferView.Buffer.uri}");
-#endif
             }
         }
 

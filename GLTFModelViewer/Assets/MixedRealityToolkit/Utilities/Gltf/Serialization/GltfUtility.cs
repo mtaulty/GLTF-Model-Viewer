@@ -11,12 +11,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 
-// MIKET: Toolkit change as per
-// https://github.com/microsoft/MixedRealityToolkit-Unity/issues/4666
-#if ENABLE_WINMD_SUPPORT
-using Windows.Storage;
-#endif // ENABLE_WINMD_SUPPORT
-
 namespace Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization
 {
     public static class GltfUtility
@@ -57,15 +51,7 @@ namespace Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization
 
             if (uri.EndsWith(".gltf"))
             {
-                // MIKET: Toolkit change as per
-                // https://github.com/microsoft/MixedRealityToolkit-Unity/issues/4666
-#if ENABLE_WINMD_SUPPORT
-                var file = await StorageFile.GetFileFromPathAsync(uri);
-
-                string gltfJson = await FileIO.ReadTextAsync(file);
-#else
                 string gltfJson = File.ReadAllText(uri);
-#endif
 
                 gltfObject = GetGltfObjectFromJson(gltfJson);
 
