@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
-
-using HoloToolkit.Unity;
+using System;
 using UnityEngine;
 
 namespace HoloToolkit.UX.Progress
@@ -10,7 +9,7 @@ namespace HoloToolkit.UX.Progress
     /// Singleton for displaying a simple loading dialog
     /// Can be combined with a radial solver to keep locked to the HMD
     /// </summary>
-    public class ProgressIndicator : Singleton<ProgressIndicator>
+    public class ProgressIndicator : MonoBehaviour
     {
         const float SmoothProgressSpeed = 10f;
 
@@ -24,6 +23,24 @@ namespace HoloToolkit.UX.Progress
                 return Instance.gameObject.activeSelf;
             }
         }
+        public static ProgressIndicator Instance
+        {
+            get
+            {
+                if (instance == null)
+                    throw new InvalidOperationException("No instance");
+                
+                return(instance);
+            }
+            private set
+            {
+                if (instance == null)
+                {
+                    instance = value;
+                }
+            }
+        }
+        static ProgressIndicator instance;
 
         [SerializeField]
         private IndicatorStyleEnum defaultIndicatorStyle = IndicatorStyleEnum.AnimatedOrbs;
@@ -226,6 +243,7 @@ namespace HoloToolkit.UX.Progress
             gameObject.SetActive(false);
             progressText.gameObject.SetActive(false);
             messageText.gameObject.SetActive(false);
+            Instance = this;
         }
 
         private void Update()

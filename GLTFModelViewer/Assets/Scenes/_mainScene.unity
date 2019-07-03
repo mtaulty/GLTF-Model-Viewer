@@ -154,40 +154,8 @@ PrefabInstance:
     m_RemovedComponents:
     - {fileID: 114835307708964488, guid: ee519d5fb10a6db4f84d116e66f872b6, type: 3}
     - {fileID: 114867900680383574, guid: ee519d5fb10a6db4f84d116e66f872b6, type: 3}
+    - {fileID: 114707428737167554, guid: ee519d5fb10a6db4f84d116e66f872b6, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: ee519d5fb10a6db4f84d116e66f872b6, type: 3}
---- !u!1 &287291576 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1993071269674472, guid: ee519d5fb10a6db4f84d116e66f872b6,
-    type: 3}
-  m_PrefabInstance: {fileID: 287291575}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &287291577
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 287291576}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a68820e3426fe974bbd59ecb919d17fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  UpdateLinkedTransform: 0
-  MoveLerpTime: 0.1
-  RotateLerpTime: 0.1
-  ScaleLerpTime: 0
-  MaintainScale: 1
-  GoalPosition: {x: 0, y: 0, z: 0}
-  GoalRotation: {x: 0, y: 0, z: 0, w: 0}
-  GoalScale: {x: 0, y: 0, z: 0}
-  Smoothing: 1
-  Lifetime: 0
-  orientation: 5
-  localOffset: {x: 0, y: 0, z: -1}
-  worldOffset: {x: 0, y: 0, z: 0}
-  useAngleSteppingForWorldOffset: 0
-  tetherAngleSteps: 6
 --- !u!1 &425312694
 GameObject:
   m_ObjectHideFlags: 0
