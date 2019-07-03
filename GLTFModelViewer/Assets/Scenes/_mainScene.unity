@@ -396,7 +396,7 @@ MonoBehaviour:
   - clipType: 4
     clip: {fileID: 8300000, guid: 3500ded6447764b428b1c0ce54a82ace, type: 3}
   - clipType: 5
-    clip: {fileID: 8300000, guid: 2aeb73cce31302b418449a027d8eaf05, type: 3}
+    clip: {fileID: 8300000, guid: 0561b58662b8943439059572affd222c, type: 3}
   - clipType: 6
     clip: {fileID: 8300000, guid: ff99b9089ab6f5141aadc9e6f79581cd, type: 3}
   - clipType: 7
@@ -768,7 +768,7 @@ Camera:
   m_GameObject: {fileID: 1934544277}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 2
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 1}
   m_projectionMatrixMode: 1
   m_SensorSize: {x: 36, y: 24}

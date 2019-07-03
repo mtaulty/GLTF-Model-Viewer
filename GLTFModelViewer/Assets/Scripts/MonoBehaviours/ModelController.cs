@@ -31,6 +31,7 @@ public class ModelController : MonoBehaviour
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
     INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
     ISingleShotSpeechRecognitionService SpeechService => MixedRealityToolkit.Instance.GetService<ISingleShotSpeechRecognitionService>();
+    IGltfFilePickerService GltfFilePickerService => MixedRealityToolkit.Instance.GetService<IGltfFilePickerService>();
 
     void Start()
     {
@@ -158,7 +159,7 @@ public class ModelController : MonoBehaviour
             // are displaying it.
             NetworkMessagingProvider.SendDeletedModelMessage((Guid)modelIdentifier.Identifier);
 
-            modelIdentifier.GetComponent<ModelPositioningManager>().Destroy();       
+            modelIdentifier.GetComponent<ModelPositioningManager>().Destroy();
         }
     }
     void ShowBusy(string message)
@@ -276,27 +277,13 @@ public class ModelController : MonoBehaviour
     {
         var filePath = string.Empty;
 
-#if ENABLE_WINMD_SUPPORT
-        var known3DObjectsFolder = KnownFolders.Objects3D.Path.ToLower().TrimEnd('\\');
+        filePath = await this.GltfFilePickerService.PickFileAsync();
 
-        do
+        // Did they choose a path outside of the 3D objects folder?
+        if (filePath == string.Empty)
         {
-            filePath = await FileDialogHelper.PickGLTFFileAsync();
-
-            if (!string.IsNullOrEmpty(filePath) &&
-                !filePath.ToLower().StartsWith(known3DObjectsFolder))
-            {
-                filePath = string.Empty;
-                this.AudioManager.PlayClipOnceOnly(AudioClipType.PickFileFrom3DObjectsFolder);
-            }
-        } while (filePath == string.Empty);
-#else
-        filePath = EditorUtility.OpenFilePanelWithFilters(
-            "Select GLTF File",
-            string.Empty,
-            new string[] { "GLTF Files", "gltf,glb", "All Files", "*" });
-#endif 
-
+            this.AudioManager.PlayClip(AudioClipType.PickFileFrom3DObjectsFolder);
+        }
         return (filePath);
     }
     async Task<ImportedModelInfo> ImportGLTFModelFromFileAsync(string filePath)
@@ -311,7 +298,7 @@ public class ModelController : MonoBehaviour
 
             if (gltfObject != null)
             {
-                modelDetails = new ImportedModelInfo(filePath, gltfObject);                
+                modelDetails = new ImportedModelInfo(filePath, gltfObject);
             }
         }
         catch

@@ -33,3 +33,9 @@ MonoBehaviour:
     priority: 10
     runtimePlatform: 8
     configurationProfile: {fileID: 0}
+  - componentType:
+      reference: GltfFilePickerService, Assembly-CSharp
+    componentName: Gltf File Picker
+    priority: 10
+    runtimePlatform: 24
+    configurationProfile: {fileID: 0}
