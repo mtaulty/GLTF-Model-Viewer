@@ -13,4 +13,17 @@ MonoBehaviour:
   m_Name: GLTFViewerRegisteredServiceProvidersProfile
   m_EditorClassIdentifier: 
   isCustomProfile: 1
-  configurations: []
+  configurations:
+  - componentType:
+      reference: MulticastMessaging.MessageService, Assembly-CSharp
+    componentName: MessageService
+    priority: 10
+    runtimePlatform: 24
+    configurationProfile: {fileID: 11400000, guid: 0687911659047e7469afb7826f752a5e,
+      type: 2}
+  - componentType:
+      reference: MulticastMessaging.NetworkMessagingProvider, Assembly-CSharp
+    componentName: NetworkProvider
+    priority: 10
+    runtimePlatform: 8
+    configurationProfile: {fileID: 0}

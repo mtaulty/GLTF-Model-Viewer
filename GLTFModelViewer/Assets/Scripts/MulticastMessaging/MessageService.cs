@@ -1,14 +1,15 @@
-﻿#if ENABLE_WINMD_SUPPORT
-
-namespace MulticastMessaging
+﻿namespace MulticastMessaging
 {
+    using Microsoft.MixedReality.Toolkit;
+    using Microsoft.MixedReality.Toolkit.Utilities;
     using System;
     using System.Diagnostics;
     using System.IO;
     using System.Net;
     using System.Net.Sockets;
 
-    public class MessageService : IDisposable
+    [MixedRealityExtensionService(SupportedPlatforms.WindowsUniversal | SupportedPlatforms.WindowsEditor)]
+    public class MessageService : BaseExtensionService, IMessageService
     {
         // Note: 239.0.0.0 is the start of the UDP multicast addresses reserved for
         // private use.
@@ -16,27 +17,29 @@ namespace MulticastMessaging
         //      netsh int ipv4 show dynamicport udp
         // on Windows 10.
         public MessageService(
-            MessageRegistrar messageRegistrar,
-            string multicastAddress = "239.0.0.0",
-            int multicastPort = 49152)
+            IMixedRealityServiceRegistrar registrar,
+            string name,
+            uint priority,
+            BaseMixedRealityProfile profile) : base(registrar, name, priority, profile)
         {
-            //if (messageRegistrar == null)
-            //{
-            //    throw new ArgumentNullException("MessageRegistrar is null");
-            //}
-            this.messageRegistrar = messageRegistrar;
-            this.multicastEndpoint = new IPEndPoint(IPAddress.Parse(multicastAddress), multicastPort);
+
         }
-        public MessageRegistrar Registrar
+        MessageServiceProfile Profile => base.ConfigurationProfile as MessageServiceProfile;
+
+        public MessageRegistrar MessageRegistrar
         {
-            get
-            {
-                return (this.messageRegistrar);
-            }
+            get => this.messageRegistrar;
+            set => this.messageRegistrar = value;
         }
+
         public void Open()
         {
             this.CheckOpen(false);
+
+            this.multicastEndpoint =
+                new IPEndPoint(
+                    IPAddress.Parse(this.Profile.multicastAddress),
+                    this.Profile.multicastPort);
 
             this.udpClient = new UdpClient(this.multicastEndpoint.Port);
 
@@ -49,6 +52,7 @@ namespace MulticastMessaging
         public void Close()
         {
             this.CheckOpen();
+
             this.udpClient.Dispose();
 
             this.udpClient = null;
@@ -81,18 +85,6 @@ namespace MulticastMessaging
                 writer.Dispose();
             }
             return (stream.ToArray());
-        }
-        public void Dispose()
-        {
-            this.Dispose(true);
-        }
-        void Dispose(bool disposing)
-        {
-            if (disposing && (this.udpClient != null))
-            {
-                this.Close();
-                GC.SuppressFinalize(this);
-            }
         }
         void CheckOpen(bool open = true)
         {
@@ -167,4 +159,3 @@ namespace MulticastMessaging
         IPEndPoint multicastEndpoint;
     }
 }
-#endif // ENABLE_WINMD_SUPPORT

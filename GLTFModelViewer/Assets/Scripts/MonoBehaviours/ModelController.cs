@@ -10,6 +10,7 @@ using Microsoft.MixedReality.Toolkit;
 using Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization;
 using System.Collections.Generic;
 using Microsoft.MixedReality.Toolkit.Physics;
+using MulticastMessaging;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
@@ -35,6 +36,7 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
     CursorManager CursorManager => this.gameObject.GetComponent<CursorManager>();
+    INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
 
 #if ENABLE_WINMD_SUPPORT
     SpeechRecognizer recognizer;

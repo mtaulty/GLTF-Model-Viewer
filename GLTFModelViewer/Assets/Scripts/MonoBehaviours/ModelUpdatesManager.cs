@@ -9,6 +9,7 @@ public class ModelUpdatesManager : MonoBehaviour
 {
     ModelIdentifier ModelIdentifier => this.gameObject.GetComponent<ModelIdentifier>();
     ModelPositioningManager ModelPositioningManager => this.gameObject.GetComponent<ModelPositioningManager>();
+    INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
 
     void Start()
     {
