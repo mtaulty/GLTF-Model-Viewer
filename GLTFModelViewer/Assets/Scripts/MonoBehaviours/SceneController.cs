@@ -24,9 +24,11 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
 
     [SerializeField]
     InputActionHandlerPair[] inputActionHandlers;
+
+    [SerializeField]
+    GameObject rootParent;
 #pragma warning restore 0649
 
-    RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
     ModelPositioningManager ModelLoader => this.gameObject.GetComponent<ModelPositioningManager>();
     AudioManager AudioManager => this.gameObject.GetComponent<AudioManager>();
     ProgressRingManager ProgressRingManager => this.gameObject.GetComponent<ProgressRingManager>();
@@ -101,7 +103,7 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
                 var positioningManager = newModel.AddComponent<ModelPositioningManager>();
 
                 positioningManager.CreateAndPositionParentAndModel(
-                    this.RootParentProvider.RootParent,
+                    this.rootParent,
                     this.parentPrefabWithInteractionConfigured);
 
                 // Add manipulations to the new model so it can be moved around.
@@ -308,7 +310,7 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
                 var positioningManager = newModel.AddComponent<ModelPositioningManager>();
 
                 positioningManager.CreateAndPositionParentAndModel(
-                    this.RootParentProvider.RootParent,
+                    this.rootParent,
                     this.parentPrefabWithInteractionConfigured);
 
                 // And updates (this handles incoming transformation messages along with removal messages too)

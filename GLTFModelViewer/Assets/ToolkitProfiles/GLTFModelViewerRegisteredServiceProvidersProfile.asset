@@ -49,6 +49,6 @@ MonoBehaviour:
       reference: UwpHttpServer.StorageFolderWebServerService, Assembly-CSharp
     componentName: Web Server
     priority: 10
-    runtimePlatform: 0
+    runtimePlatform: 8
     configurationProfile: {fileID: 11400000, guid: e11697b3dd7eb404c94ec53b802d5153,
       type: 2}
