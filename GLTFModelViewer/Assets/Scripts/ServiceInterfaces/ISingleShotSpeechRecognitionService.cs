@@ -5,6 +5,5 @@ using System.Threading.Tasks;
 
 public interface ISingleShotSpeechRecognitionService : IMixedRealityExtensionService
 {
-    Task<bool> RecogniseAsync(
-        Dictionary<string, Func<Task>> keywordsAndHandlers);
+    Task RecogniseAndDispatchCommandsAsync(InputActionHandlerPair[] actionsAndHandlers);
 }

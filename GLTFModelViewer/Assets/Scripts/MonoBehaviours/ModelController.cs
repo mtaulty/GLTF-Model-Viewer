@@ -15,11 +15,14 @@ using Windows.Storage;
 using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class ModelController : MonoBehaviour
+public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
 {
 #pragma warning disable 0649
     [SerializeField]
     GameObject parentPrefabWithInteractionConfigured;
+
+    [SerializeField]
+    InputActionHandlerPair[] inputActionHandlers;
 #pragma warning restore 0649
 
     RootParentProvider RootParentProvider => this.gameObject.GetComponent<RootParentProvider>();
@@ -34,38 +37,44 @@ public class ModelController : MonoBehaviour
 
     void Start()
     {
-        // This does nothing if we have no IP address connected to a network
+#if !UNITY_EDITOR
+        // Note: I have configured this service to only "support" the platform of 
+        // "UWP" but I find it still runs in the editor so I switch it off here.
+        // This does nothing if we have no IP address connected to a network.
         NetworkMessagingProvider.NewModelOnNetwork += this.OnNewModelFromNetwork;
         NetworkMessagingProvider.Initialise();
 
-        // Fire and forget...
-        this.InitialiseSpeechCommands();
-    }
-    async Task InitialiseSpeechCommands()
-    {
+        // Note: I have configured the speech service so that it only "supports" the platform
+        // of "UWP" and so I do not expect it to run inside the editor. But it does...
+        // https://github.com/microsoft/MixedRealityToolkit-Unity/issues/5205
+        // Consequently, I'm conditionally compiling it as well so that it *doesn't*
         if (this.SpeechService != null)
         {
-            var entries = new Dictionary<string, Func<Task>>()
-            {
-                ["open"] = this.OnOpenSpeechCommand,
-                ["remove"] = this.OnRemoveSpeechCommand,
-                ["reset"] = this.OnResetSpeechCommand,
-                ["profiler"] = this.OnToggleProfilerSpeechCommand
-            };
-            while (true)
-            {
-                var result = await this.SpeechService.RecogniseAsync(entries);
-
-                // Just in case things go very wrong and we start to spin.
-                await Task.Delay(250);
-            }
+            this.InitialiseSpeechCommandsAsync();
         }
+#else
+        // Register so that we pick up the input actions that are raised globabally...
+        MixedRealityToolkit.InputSystem.Register(this.gameObject);
+#endif // UNITY_EDITOR
+    }
+    public void OnActionStarted(BaseInputEventData eventData)
+    {
+        var actionHandler = this.inputActionHandlers.FirstOrDefault(a => a.action == eventData.MixedRealityInputAction);
+        actionHandler?.handler.Invoke();
+    }
+    public void OnActionEnded(BaseInputEventData eventData)
+    {
+    }
+    async void InitialiseSpeechCommandsAsync()
+    {
+        // No await here, we just fire and forget...
+        _ = this.SpeechService.RecogniseAndDispatchCommandsAsync(this.inputActionHandlers);
     }
     protected virtual void OnDisable()
     {
         MixedRealityToolkit.InputSystem?.Unregister(gameObject);
     }
-    public async Task OnOpenSpeechCommand()
+    public async void OnOpenSpeechCommand()
     {
         var filePath = await this.PickFileFrom3DObjectsFolderAsync();
 
@@ -103,6 +112,9 @@ public class ModelController : MonoBehaviour
                 await FileStorageManager.StoreFileListAsync(
                     (Guid)modelIdentifier.Identifier, modelDetails);
 
+                // We don't play with world anchors in the editor, we just leave
+                // that code out.
+#if !UNITY_EDITOR
                 // And export the anchor into the file system as well.
                 // TODO: this will currently wait "for ever" for the world anchor to be
                 // located which might be wildly optimistic, we should probably add some
@@ -122,17 +134,18 @@ public class ModelController : MonoBehaviour
                     NetworkMessagingProvider.SendNewModelMessage(
                         (Guid)modelIdentifier.Identifier);
                 }
+#endif // UNITY_EDITOR
             }
         }
     }
-    async Task OnToggleProfilerSpeechCommand()
+    public async void OnToggleProfilerSpeechCommand()
     {
         // TODO: take this out of here, it belongs somewhere more 'global'
         MixedRealityToolkit.DiagnosticsSystem.ShowProfiler =
             !MixedRealityToolkit.DiagnosticsSystem.ShowProfiler;
     }
 
-    public async Task OnResetSpeechCommand()
+    public async void OnResetSpeechCommand()
     {
         bool first = true;
 
@@ -148,7 +161,7 @@ public class ModelController : MonoBehaviour
             modelPositioningManager.ReturnModelToLoadedPosition();
         }
     }
-    public async Task OnRemoveSpeechCommand()
+    public async void OnRemoveSpeechCommand()
     {
         var modelIdentifiers = this.GetFocusedObjectWithChildComponent<ModelIdentifier>();
 
@@ -213,6 +226,51 @@ public class ModelController : MonoBehaviour
         }
         return (modelFilePath);
     }
+    async Task<string> PickFileFrom3DObjectsFolderAsync()
+    {
+        var filePath = string.Empty;
+
+        filePath = await this.GltfFilePickerService.PickFileAsync();
+
+        // Did they choose a path outside of the 3D objects folder?
+        if (filePath == string.Empty)
+        {
+            this.AudioManager.PlayClip(AudioClipType.PickFileFrom3DObjectsFolder);
+        }
+        return (filePath);
+    }
+    async Task<ImportedModelInfo> ImportGLTFModelFromFileAsync(string filePath)
+    {
+        this.ShowBusy("Loading model...");
+
+        ImportedModelInfo modelDetails = null;
+
+        try
+        {
+            var gltfObject = await GltfUtility.ImportGltfObjectFromPathAsync(filePath);
+
+            if (gltfObject != null)
+            {
+                modelDetails = new ImportedModelInfo(filePath, gltfObject);
+            }
+        }
+        catch
+        {
+            // TODO: figure out sensible exceptions here.
+        }
+        this.HideBusy();
+
+        if (modelDetails?.GameObject != null)
+        {
+            this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
+        }
+        else
+        {
+            this.AudioManager?.PlayClip(AudioClipType.LoadError);
+        }
+        return (modelDetails);
+    }
+#if !UNITY_EDITOR
     async void OnNewModelFromNetwork(object sender, NewModelOnNetworkEventArgs e)
     {
         var acceptDownload = await DialogService.AskYesNoQuestionAsync(
@@ -272,48 +330,5 @@ public class ModelController : MonoBehaviour
             this.HideBusy();
         }
     }
-    async Task<string> PickFileFrom3DObjectsFolderAsync()
-    {
-        var filePath = string.Empty;
-
-        filePath = await this.GltfFilePickerService.PickFileAsync();
-
-        // Did they choose a path outside of the 3D objects folder?
-        if (filePath == string.Empty)
-        {
-            this.AudioManager.PlayClip(AudioClipType.PickFileFrom3DObjectsFolder);
-        }
-        return (filePath);
-    }
-    async Task<ImportedModelInfo> ImportGLTFModelFromFileAsync(string filePath)
-    {
-        this.ShowBusy("Loading model...");
-
-        ImportedModelInfo modelDetails = null;
-
-        try
-        {
-            var gltfObject = await GltfUtility.ImportGltfObjectFromPathAsync(filePath);
-
-            if (gltfObject != null)
-            {
-                modelDetails = new ImportedModelInfo(filePath, gltfObject);
-            }
-        }
-        catch
-        {
-            // TODO: figure out sensible exceptions here.
-        }
-        this.HideBusy();
-
-        if (modelDetails?.GameObject != null)
-        {
-            this.AudioManager?.PlayClipOnceOnly(AudioClipType.FirstModelOpened);
-        }
-        else
-        {
-            this.AudioManager?.PlayClip(AudioClipType.LoadError);
-        }
-        return (modelDetails);
-    }
+#endif // UNITY_EDITOR
 }

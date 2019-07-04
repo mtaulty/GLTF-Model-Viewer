@@ -2,9 +2,8 @@
 using Microsoft.MixedReality.Toolkit;
 using Microsoft.MixedReality.Toolkit.Utilities;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using UnityEngine.Windows.Speech;
 using System.Linq;
+using UnityEngine.Events;
 
 #if ENABLE_WINMD_SUPPORT
 using System.Windows.Input;
@@ -40,53 +39,43 @@ public class SingleShotSpeechRecognitionService : BaseExtensionService, ISingleS
     /// returns "Success" and "Rejected" at the same time & once that happens you don't get
     /// any more recognition unless you throw it away and so that's behind my approach.
     /// </summary>
-    public async Task<bool> RecogniseAsync(
-        Dictionary<string, Func<Task>> keywordsAndHandlers)
+    /// 
+    public async Task RecogniseAndDispatchCommandsAsync(InputActionHandlerPair[] actionsAndHandlers)
     {
-        var result = false;
-
 #if ENABLE_WINMD_SUPPORT
-        using (var recognizer = new SpeechRecognizer())
+        while (true)
         {
-            recognizer.Constraints.Add(new SpeechRecognitionListConstraint(keywordsAndHandlers.Keys));
-
-            await recognizer.CompileConstraintsAsync();
-
-            var uwpResult = await recognizer.RecognizeAsync();
-
-            if ((uwpResult != null) && (uwpResult.Confidence != SpeechRecognitionConfidence.Rejected))
+            using (var recognizer = new SpeechRecognizer())
             {
-                await keywordsAndHandlers?[uwpResult.Text]();
-                result = true;
-            }            
-        }
-#endif
+                recognizer.Constraints.Add(new SpeechRecognitionListConstraint(
+                    actionsAndHandlers.Select(a => a.action.Description.ToLower())));
 
-#if UNITY_EDITOR
+                await recognizer.CompileConstraintsAsync();
 
-        // Not sure if this sort of 'create and throw away' approach 
-        using (var recognizer = new KeywordRecognizer(keywordsAndHandlers.Keys.ToArray()))
-        {
-            var completed = new TaskCompletionSource<bool>();
+                var uwpResult = await recognizer.RecognizeAsync();
+                UnityEvent handler = null;
 
-            recognizer.OnPhraseRecognized += async (e) =>
-            {
-                var recognised = false;
-
-                if (e.confidence != ConfidenceLevel.Rejected)
+                if ((uwpResult != null) && 
+                    (uwpResult.Confidence != SpeechRecognitionConfidence.Rejected))
                 {
-                    await keywordsAndHandlers?[e.text]();
-                    recognised = true;
+                    handler = actionsAndHandlers
+                        .Where(a => string.Compare(a.action.Description, uwpResult.Text, true) == 0)
+                        .Select(a => a.handler)
+                        .FirstOrDefault();
                 }
-                completed.SetResult(recognised);
-            };
-            recognizer.Start();
-
-            result = await completed.Task;
-
-            recognizer.Stop();
+                if (handler != null)
+                {
+                    handler.Invoke();
+                }
+                else
+                {
+                    // Not expecting to hit this but "just in case"
+                    await Task.Delay(250);
+                }
+            }
         }
+#else
+        throw new InvalidOperationException("Not expecting this to run outside of UWP, use MRTK speech for editor");
 #endif
-        return (result);
     }
 }

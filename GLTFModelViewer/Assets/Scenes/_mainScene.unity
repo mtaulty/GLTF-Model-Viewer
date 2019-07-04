@@ -250,6 +250,87 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   parentPrefabWithInteractionConfigured: {fileID: 2776631784665229490, guid: 2f3b8ffed65ccc4429030b107d3e58f3,
     type: 3}
+  inputActionHandlers:
+  - action:
+      id: 14
+      description: Open
+      axisConstraint: 0
+    handler:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 425312697}
+          m_MethodName: OnOpenSpeechCommand
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 1
+      m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+  - action:
+      id: 16
+      description: Reset
+      axisConstraint: 0
+    handler:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 425312697}
+          m_MethodName: OnResetSpeechCommand
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 1
+      m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+  - action:
+      id: 15
+      description: Remove
+      axisConstraint: 0
+    handler:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 425312697}
+          m_MethodName: OnRemoveSpeechCommand
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 1
+      m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+  - action:
+      id: 17
+      description: Profiler
+      axisConstraint: 0
+    handler:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 425312697}
+          m_MethodName: OnToggleProfilerSpeechCommand
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 1
+      m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
 --- !u!82 &425312698
 AudioSource:
   m_ObjectHideFlags: 0

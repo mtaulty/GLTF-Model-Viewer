@@ -63,5 +63,5 @@ MonoBehaviour:
     description: Reset
     axisConstraint: 0
   - id: 17
-    description: FrameRate
+    description: Profiler
     axisConstraint: 0
