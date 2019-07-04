@@ -13,13 +13,17 @@ public class ModelUpdatesManager : MonoBehaviour
 
     void Start()
     {
+#if !UNITY_EDITOR
         NetworkMessagingProvider.TransformChange += this.OnTransformChangeMessage;
         NetworkMessagingProvider.DeletedModelOnNetwork += this.OnDeletedModelMessage;
+#endif // UNITY_EDITOR
     }
     void OnDestroy()
     {
+#if !UNITY_EDITOR
         NetworkMessagingProvider.TransformChange -= this.OnTransformChangeMessage;
         NetworkMessagingProvider.DeletedModelOnNetwork -= this.OnDeletedModelMessage;
+#endif // UNITY_EDITOR
     }
     void OnDeletedModelMessage(object sender, DeletedModelOnNetworkEventArgs e)
     {
@@ -70,11 +74,13 @@ public class ModelUpdatesManager : MonoBehaviour
                 this.currentTranslation = transform.localPosition;
                 this.currentScale = transform.localScale;
 
+#if !UNITY_EDITOR
                 NetworkMessagingProvider.SendTransformChangeMessage(
                     (Guid)this.ModelIdentifier.Identifier,
                     (Vector3)this.currentScale,
                     (Quaternion)this.currentRotation,
                     (Vector3)this.currentTranslation);
+#endif // UNITY_EDITOR
             }
         }
     }
