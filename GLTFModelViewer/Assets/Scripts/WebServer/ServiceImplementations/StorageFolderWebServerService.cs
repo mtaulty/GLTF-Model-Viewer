@@ -1,26 +1,43 @@
-﻿#if ENABLE_WINMD_SUPPORT
+﻿using Microsoft.MixedReality.Toolkit;
+using Microsoft.MixedReality.Toolkit.Utilities;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
+#if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
 using Windows.Storage.Streams;
+#endif // ENABLE_WINMD_SUPPORT
 
 namespace UwpHttpServer
 {
-    public class StorageFolderWebServer
+    /// <summary>
+    /// Note, I don't want/expect this to run in the editor and I'm trying to turn it off here
+    /// but I suspect the framework will still start it so...
+    /// </summary>
+    [MixedRealityExtensionService(SupportedPlatforms.WindowsUniversal)]
+    public class StorageFolderWebServerService : BaseExtensionService, IStorageFolderWebServerService
     {
-        public StorageFolderWebServer(StorageFolder folder, int port=8088)
+        public StorageFolderWebServerService(
+            IMixedRealityServiceRegistrar registrar, 
+            string name = null, 
+            uint priority = 10, 
+            BaseMixedRealityProfile profile = null) : base(registrar, name, priority, profile)
         {
-            this.port = port;
-            this.folder = folder;
+
         }
+        StorageFolderWebServerProfile Profile => base.ConfigurationProfile as StorageFolderWebServerProfile;
+
         public async Task RunAsync(CancellationToken? cancelToken = null)
         {
+#if ENABLE_WINMD_SUPPORT
+            this.folderPath = MapPath(this.Profile.folderToExpose);
+
             var httpListener = new HttpListener();
-            httpListener.Prefixes.Add($"http://*:{this.port}/");
+            httpListener.Prefixes.Add($"http://*:{this.Profile.port}/");
             httpListener.Start();
 
             var contextConstraints = new HttpListenerContextConstraintList();
@@ -55,7 +72,9 @@ namespace UwpHttpServer
                 httpListener.Stop();
                 httpListener.Close();
             }
+#endif // ENABLE_WINMD_SUPPORT
         }
+#if ENABLE_WINMD_SUPPORT
         async Task ServeFile(HttpListenerContext context)
         {
             // Note: context.Response.StatusCode (by definition at the time of writing)
@@ -64,7 +83,7 @@ namespace UwpHttpServer
 
             var requestPath = decodedUrl.TrimStart('/').Replace('/','\\');
 
-            var fullPath = Path.Combine(this.folder.Path, requestPath);
+            var fullPath = Path.Combine(this.folderPath, requestPath);
 
             try
             {
@@ -89,9 +108,15 @@ namespace UwpHttpServer
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
             }
         }
-
-        StorageFolder folder;
-        int port;
+        static string MapPath(StorageFolderType folderType)
+        {
+            return (folderMap[folderType].Path);
+        }
+        static Dictionary<StorageFolderType, StorageFolder> folderMap = new Dictionary<StorageFolderType, StorageFolder>()
+        {
+            { StorageFolderType.ObjectFolder3D , KnownFolders.Objects3D }
+        };
+#endif // ENABLE_WINMD_SUPPORT
+        string folderPath;
     }
 }
-#endif // ENABLE_WINMD_SUPPORT

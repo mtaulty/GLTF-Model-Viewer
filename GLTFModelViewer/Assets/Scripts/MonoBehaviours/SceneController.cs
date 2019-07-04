@@ -9,13 +9,14 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
+using UwpHttpServer;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
 using Windows.Media.SpeechRecognition;
 #endif // ENABLE_WINMD_SUPPORT
 
-public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
+public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
 {
 #pragma warning disable 0649
     [SerializeField]
@@ -34,6 +35,7 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
     ISingleShotSpeechRecognitionService SpeechService => MixedRealityToolkit.Instance.GetService<ISingleShotSpeechRecognitionService>();
     IGltfFilePickerService GltfFilePickerService => MixedRealityToolkit.Instance.GetService<IGltfFilePickerService>();
     IDialogService DialogService => MixedRealityToolkit.Instance.GetService<IDialogService>();
+    IStorageFolderWebServerService WebServer => MixedRealityToolkit.Instance.GetService<IStorageFolderWebServerService>();
 
     void Start()
     {
@@ -51,6 +53,11 @@ public class ModelController : MonoBehaviour, IMixedRealityInputActionHandler
         if (this.SpeechService != null)
         {
             this.InitialiseSpeechCommandsAsync();
+        }
+        // Same deal as above...
+        if (this.WebServer != null)
+        {
+            this.WebServer.RunAsync();
         }
 #else
         // Register so that we pick up the input actions that are raised globabally...
