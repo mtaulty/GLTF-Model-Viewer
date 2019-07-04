@@ -1,12 +1,26 @@
-﻿using System;
+﻿using Microsoft.MixedReality.Toolkit;
+using Microsoft.MixedReality.Toolkit.Utilities;
+using System;
 using System.Threading.Tasks;
 #if ENABLE_WINMD_SUPPORT
 using Windows.UI.Popups;
 #endif // ENABLE_WINMD_SUPPORT
 
-internal static class MessageDialogHelper
+[MixedRealityExtensionService(SupportedPlatforms.WindowsUniversal | SupportedPlatforms.WindowsEditor)]
+public class DialogService : BaseExtensionService, IDialogService
 {
-    internal static async Task<bool> AskYesNoQuestionAsync(string title, string question)
+    public DialogService(
+            IMixedRealityServiceRegistrar registrar,
+            string name = null,
+            uint priority = DefaultPriority,
+            BaseMixedRealityProfile profile = null) : base(registrar, name, priority, profile)
+    {
+        Registrar = registrar;
+        Name = name;
+        Priority = priority;
+        ConfigurationProfile = profile;
+    }
+    public async Task<bool> AskYesNoQuestionAsync(string title, string question)
     {
 #if ENABLE_WINMD_SUPPORT
         var completed = new TaskCompletionSource<bool>();

@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
-using UnityEngine;
-using System.IO;
+﻿using Microsoft.MixedReality.Toolkit;
 using Microsoft.MixedReality.Toolkit.Input;
-using UnityEditor;
-using Microsoft.MixedReality.Toolkit;
-using System.Linq;
 using Microsoft.MixedReality.Toolkit.Physics;
 using Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization;
 using MulticastMessaging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
+using UnityEngine;
 
 #if ENABLE_WINMD_SUPPORT
 using Windows.Storage;
@@ -32,6 +30,7 @@ public class ModelController : MonoBehaviour
     INetworkMessagingProvider NetworkMessagingProvider => MixedRealityToolkit.Instance.GetService<INetworkMessagingProvider>();
     ISingleShotSpeechRecognitionService SpeechService => MixedRealityToolkit.Instance.GetService<ISingleShotSpeechRecognitionService>();
     IGltfFilePickerService GltfFilePickerService => MixedRealityToolkit.Instance.GetService<IGltfFilePickerService>();
+    IDialogService DialogService => MixedRealityToolkit.Instance.GetService<IDialogService>();
 
     void Start()
     {
@@ -216,7 +215,7 @@ public class ModelController : MonoBehaviour
     }
     async void OnNewModelFromNetwork(object sender, NewModelOnNetworkEventArgs e)
     {
-        var acceptDownload = await MessageDialogHelper.AskYesNoQuestionAsync(
+        var acceptDownload = await DialogService.AskYesNoQuestionAsync(
             "New Model Available",
             "Someone on the network has opened a new model, do you want to access it?");
 
