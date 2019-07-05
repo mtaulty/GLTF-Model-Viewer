@@ -93,27 +93,29 @@ public class ModelPositioningManager : MonoBehaviour
         // record it so that we can put it back on the 'reset' command.
         this.initialScaleFactor = this.InteractableParent.transform.localScale;
     }
+    /// <summary>
+    /// I borrowed this from here https://answers.unity.com/questions/17968/finding-the-bounds-of-a-grouped-model.html
+    /// as my earlier version didn't *quite* work in some circumstances.
+    /// </summary>
+    /// <returns></returns>
     Bounds CalculateRendererBounds()
     {
-        var currentRenderer = this.gameObject.GetComponent<Renderer>();
-        Bounds? bounds = null;
+        var currentRotation = this.gameObject.transform.rotation;
+        this.gameObject.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
 
-        if (currentRenderer != null)
+        var bounds = new Bounds(this.gameObject.transform.position, Vector3.zero);
+
+        foreach (var renderer in this.gameObject.GetComponentsInChildren<Renderer>())
         {
-            bounds = currentRenderer.bounds;
+            bounds.Encapsulate(renderer.bounds);
         }
-        foreach (var renderer in this.gameObject.transform.GetComponentsInChildren<Renderer>())
-        {
-            if (bounds == null)
-            {
-                bounds = renderer.bounds;
-            }
-            else
-            {
-                bounds.Value.Encapsulate(renderer.bounds);
-            }
-        }
-        return (bounds.Value);
+
+        var localCenter = bounds.center - this.transform.position;
+        bounds.center = localCenter;
+
+        this.gameObject.transform.rotation = currentRotation;
+
+        return (bounds);
     }
     static readonly float MODEL_START_SIZE = 0.5f;
     static readonly float MODEL_START_DISTANCE = 1.5f;
