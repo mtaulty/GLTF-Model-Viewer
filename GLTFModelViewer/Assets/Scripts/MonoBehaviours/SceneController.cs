@@ -54,7 +54,7 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
         // Consequently, I'm conditionally compiling it as well so that it *doesn't*
         if (this.SpeechService != null)
         {
-            this.InitialiseSpeechCommandsAsync();
+            this.InitialiseSpeechCommands();
         }
         // Same deal as above...
         if (this.WebServer != null)
@@ -74,7 +74,7 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
     public void OnActionEnded(BaseInputEventData eventData)
     {
     }
-    async void InitialiseSpeechCommandsAsync()
+    void InitialiseSpeechCommands()
     {
         // No await here, we just fire and forget...
         _ = this.SpeechService.RecogniseAndDispatchCommandsAsync(this.inputActionHandlers);
@@ -147,14 +147,14 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
             }
         }
     }
-    public async void OnToggleProfilerSpeechCommand()
+    public void OnToggleProfilerSpeechCommand()
     {
         // TODO: take this out of here, it belongs somewhere more 'global'
         MixedRealityToolkit.DiagnosticsSystem.ShowProfiler =
             !MixedRealityToolkit.DiagnosticsSystem.ShowProfiler;
     }
 
-    public async void OnResetSpeechCommand()
+    public void OnResetSpeechCommand()
     {
         bool first = true;
 
@@ -170,7 +170,7 @@ public class SceneController : MonoBehaviour, IMixedRealityInputActionHandler
             modelPositioningManager.ReturnModelToLoadedPosition();
         }
     }
-    public async void OnRemoveSpeechCommand()
+    public void OnRemoveSpeechCommand()
     {
         var modelIdentifiers = this.GetFocusedObjectWithChildComponent<ModelIdentifier>();
 

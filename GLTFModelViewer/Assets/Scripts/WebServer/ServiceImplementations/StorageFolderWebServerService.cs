@@ -31,6 +31,7 @@ namespace UwpHttpServer
         }
         StorageFolderWebServerProfile Profile => base.ConfigurationProfile as StorageFolderWebServerProfile;
 
+#pragma warning disable CS1998
         public async Task RunAsync(CancellationToken? cancelToken = null)
         {
 #if ENABLE_WINMD_SUPPORT
@@ -74,6 +75,8 @@ namespace UwpHttpServer
             }
 #endif // ENABLE_WINMD_SUPPORT
         }
+#pragma warning restore CS1998
+
 #if ENABLE_WINMD_SUPPORT
         async Task ServeFile(HttpListenerContext context)
         {

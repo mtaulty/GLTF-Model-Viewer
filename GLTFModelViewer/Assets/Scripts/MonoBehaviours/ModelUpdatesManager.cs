@@ -89,7 +89,7 @@ public class ModelUpdatesManager : MonoBehaviour
     Vector3? currentScale;
     bool isMulticastingTransforms;
 
-    static readonly double ROTATION_TOLERANCE = 0.5d;
+    static readonly double ROTATION_TOLERANCE = 0.25d;
     static readonly double POSITION_TOLERANCE = 0.01d;
-    static readonly double SCALE_TOLERANCE = 0.05d;
+    static readonly double SCALE_TOLERANCE = 0.025d;
 }

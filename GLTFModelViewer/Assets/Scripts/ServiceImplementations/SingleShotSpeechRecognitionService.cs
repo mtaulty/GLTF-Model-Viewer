@@ -40,6 +40,7 @@ public class SingleShotSpeechRecognitionService : BaseExtensionService, ISingleS
     /// any more recognition unless you throw it away and so that's behind my approach.
     /// </summary>
     /// 
+#pragma warning disable CS1998
     public async Task RecogniseAndDispatchCommandsAsync(InputActionHandlerPair[] actionsAndHandlers)
     {
 #if ENABLE_WINMD_SUPPORT
@@ -78,4 +79,5 @@ public class SingleShotSpeechRecognitionService : BaseExtensionService, ISingleS
         throw new InvalidOperationException("Not expecting this to run outside of UWP, use MRTK speech for editor");
 #endif
     }
+#pragma warning restore CS1998
 }

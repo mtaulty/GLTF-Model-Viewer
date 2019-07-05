@@ -31,6 +31,7 @@ public static class FileStorageManager
     public static string GetAnchorFileRelativeUri(Guid modelIdentifier) => 
         $"{AppSubFolderName}/{modelIdentifier}{FILE_ANCHOR_FILE_EXTENSION}";
 
+#pragma warning disable CS1998
     public static async Task StoreFileListAsync(Guid modelIdentifier,
         ImportedModelInfo importedModelInfo)
     {
@@ -81,6 +82,7 @@ public static class FileStorageManager
 
         return (bits);
     }
+#pragma warning restore CS1998
 #if ENABLE_WINMD_SUPPORT   
     public static async Task<StorageFile> GetStorageFileForRelativeUriAsync(string relativeUri)
     {

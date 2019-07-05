@@ -20,6 +20,7 @@ public class DialogService : BaseExtensionService, IDialogService
         Priority = priority;
         ConfigurationProfile = profile;
     }
+#pragma warning disable CS1998
     public async Task<bool> AskYesNoQuestionAsync(string title, string question)
     {
 #if ENABLE_WINMD_SUPPORT
@@ -50,5 +51,6 @@ public class DialogService : BaseExtensionService, IDialogService
 #else
         throw new InvalidOperationException("Sorry, only UWP support here");
 #endif // ENABLE_WINMD_SUPPORT
+#pragma warning restore CS1998
     }
 }

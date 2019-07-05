@@ -20,6 +20,7 @@ public class GltfFilePickerService : BaseExtensionService, IGltfFilePickerServic
         BaseMixedRealityProfile profile = null) : base(registrar, name, priority, profile)
     {
     }
+#pragma warning disable CS1998
     public async Task<string> PickFileAsync()
     {
         var returnValue = string.Empty;
@@ -77,6 +78,8 @@ public class GltfFilePickerService : BaseExtensionService, IGltfFilePickerServic
         }
         return (returnValue);
     }
+#pragma warning restore CS1998
+
     static bool IsValidFilePath(string filePath)
     {
         var valid = !string.IsNullOrEmpty(filePath);

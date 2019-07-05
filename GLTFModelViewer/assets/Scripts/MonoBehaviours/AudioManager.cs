@@ -24,11 +24,13 @@ public class AudioClipEntry
 }
 public class AudioManager : MonoBehaviour
 {
+#pragma warning disable CS0649
     [SerializeField]
     AudioSource audioSource;
 
     [SerializeField]
     AudioClipEntry[] audioClips;
+#pragma warning restore CS0649
 
     public void PlayClip(AudioClipType clipType)
     {

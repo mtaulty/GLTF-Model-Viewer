@@ -21,6 +21,7 @@ public class HttpModelDownloader : MonoBehaviour
         this.remoteHostIpAddress = remoteHostIpAddress;
         this.remotePort = remotePort;
     }
+#pragma warning disable CS1998
     async Task<List<string>> DownloadRemoteUriListForModelAsync()
     {
 #if ENABLE_WINMD_SUPPORT
@@ -95,6 +96,8 @@ public class HttpModelDownloader : MonoBehaviour
 
         return (worked ? mainFilePath : string.Empty);
     }
+#pragma warning restore CS1998
+
 #if ENABLE_WINMD_SUPPORT
     async Task<bool> DownloadToStorageFileAsync(
         string remoteRelativeUri,
