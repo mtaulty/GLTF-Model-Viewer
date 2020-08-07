@@ -321,11 +321,11 @@ namespace Microsoft.MixedReality.Toolkit.Utilities.Gltf.Serialization
                 {
                     material.DisableKeyword("_CHANNEL_MAP");
                 }
-
-                material.SetFloat(SmoothnessId, Mathf.Abs((float)gltfMaterial.pbrMetallicRoughness.roughnessFactor - 1f));
-                material.SetFloat(MetallicId, (float)gltfMaterial.pbrMetallicRoughness.metallicFactor);
             }
-
+            // MT - hacked this to try and use the smoothness values if they are set rather than only if
+            // a texture is provided which is how this code originally had it.
+            material.SetFloat(SmoothnessId, Mathf.Abs((float)gltfMaterial.pbrMetallicRoughness.roughnessFactor - 1f));
+            material.SetFloat(MetallicId, (float)gltfMaterial.pbrMetallicRoughness.metallicFactor);
 
             if (gltfMaterial.normalTexture.index >= 0)
             {

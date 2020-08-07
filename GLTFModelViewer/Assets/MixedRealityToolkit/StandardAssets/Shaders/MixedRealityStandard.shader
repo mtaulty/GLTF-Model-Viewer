@@ -115,7 +115,7 @@ Shader "Mixed Reality Toolkit/Standard"
             #pragma vertex vert
             #pragma fragment frag
 
-            #pragma shader_feature _EMISSION
+            #pragma multi_compile _EMISSION
             #pragma shader_feature _CHANNEL_MAP
 
             #include "UnityCG.cginc"
@@ -218,11 +218,20 @@ Shader "Mixed Reality Toolkit/Standard"
             #pragma shader_feature _ _METALLIC_TEXTURE_ALBEDO_CHANNEL_A _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
             #pragma shader_feature _CHANNEL_MAP
             #pragma shader_feature _NORMAL_MAP
-            #pragma shader_feature _EMISSION
+            #pragma multi_compile _EMISSION
             #pragma shader_feature _TRIPLANAR_MAPPING
             #pragma shader_feature _LOCAL_SPACE_TRIPLANAR_MAPPING
-            #pragma shader_feature _DIRECTIONAL_LIGHT
-            #pragma shader_feature _SPECULAR_HIGHLIGHTS
+
+			// MT - *hacked* this such that _DIRECTIONAL_LIGHT and _SPECULAR_HIGHLIGHTS and _EMISSION are
+			// marked multi_compile rather than shader_feature because of issue;
+			// https://github.com/microsoft/MixedRealityToolkit-Unity/pull/7543#issuecomment-603378577 
+			// https://github.com/microsoft/MixedRealityToolkit-Unity/issues/7582
+			// Hoping to be able to take those away in the future and note that the code in ConstructGltf.cs
+			// also uses Enable/DisableKeyword on other feautres including _ALPHATEST_ON, _ALPHABLEND_ON,
+			// _ALPHAPREMULTIPLY_ON, _CHANNEL_MAP, _NORMAL_MAP so I daresay that I have some problems
+			// with loading certain models if they use those features.
+            #pragma multi_compile _DIRECTIONAL_LIGHT
+            #pragma multi_compile _SPECULAR_HIGHLIGHTS
             #pragma shader_feature _SPHERICAL_HARMONICS
             #pragma shader_feature _REFLECTIONS
             #pragma shader_feature _REFRACTION

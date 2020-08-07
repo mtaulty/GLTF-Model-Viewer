@@ -30,16 +30,27 @@ public class ImportedModelInfo
         //  subfolder/bar/foo.bin
 
         // and will probably fail if I encounter something other than that.
-        var definedUris =
-            gltfObject.buffers
-                .Where(b => !string.IsNullOrEmpty(b.uri))
-                .Select(b => b.uri)
-            .Concat(
-                gltfObject.images
-                    .Where(i => !string.IsNullOrEmpty(i.uri))
-                    .Select(i => i.uri));
 
-        this.relativeLoadedFilePaths.AddRange(definedUris);            
+        // Revisiting this in August 2020 the comment above came true in that
+        // there are various files that I fail to open. Trying to correct
+        // that with this code which "tries" to be more robust.
+        List<string> definedUris = new List<string>();
+
+        if (gltfObject.buffers != null)
+        {
+            definedUris.AddRange(
+                gltfObject.buffers
+                    .Where(b => !string.IsNullOrEmpty(b.uri) && File.Exists(Path.Combine(this.BaseDirectoryPath, b.uri)))
+                    .Select(b => b.uri));
+        }
+        if (gltfObject.images != null)
+        {
+            definedUris.AddRange(
+                gltfObject.images
+                    .Where(i => !string.IsNullOrEmpty(i.uri) && File.Exists(Path.Combine(this.BaseDirectoryPath, i.uri)))
+                    .Select(i => i.uri));
+        }
+        this.relativeLoadedFilePaths.AddRange(definedUris);
 
         this.GameObject = gltfObject.GameObjectReference;
     }
